@@ -2,18 +2,11 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { ThreadsService } from '../services/threads';
 import logger from '../utils/logger';
-import { CollectInsightsBody, CollectInsightsQuery } from '../types/insight';
+import { CollectInsightsBody } from '../types/insight';
 
 const prisma = new PrismaClient();
 
 export class InsightController {
-    private threadsService: ThreadsService;
-
-    constructor() {
-        const token = process.env.THREADS_ACCESS_TOKEN || '';
-        const userId = process.env.THREADS_USER_ID || '';
-        this.threadsService = new ThreadsService(token, userId);
-    }
 
     /**
      * @swagger
@@ -21,22 +14,26 @@ export class InsightController {
      *   post:
      *     summary: Collect insights from Threads posts
      *     tags: [Insights]
-     *     parameters:
-     *       - in: query
-     *         name: limit
-     *         schema:
-     *           type: integer
-     *           default: 10
-     *         description: Number of posts to fetch
      *     requestBody:
+     *       required: true
      *       content:
      *         application/json:
      *           schema:
      *             type: object
+     *             required:
+     *               - token
+     *               - userId
      *             properties:
+     *               token:
+     *                 type: string
+     *                 description: Threads API access token
+     *               userId:
+     *                 type: string
+     *                 description: Threads user ID
      *               limit:
      *                 type: integer
-     *                 description: Number of posts to fetch (alternative to query param)
+     *                 default: 10
+     *                 description: Number of posts to fetch
      *     responses:
      *       200:
      *         description: Successfully collected insights
@@ -48,6 +45,17 @@ export class InsightController {
      *                 success:
      *                   type: boolean
      *                 message:
+     *                   type: string
+     *       400:
+     *         description: Bad request - missing required fields
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                 error:
      *                   type: string
      *       500:
      *         description: Server error
@@ -61,11 +69,22 @@ export class InsightController {
      *                 error:
      *                   type: string
      */
-    collectInsights = async (req: Request<{}, {}, CollectInsightsBody, CollectInsightsQuery>, res: Response) => {
+    collectInsights = async (req: Request<{}, {}, CollectInsightsBody>, res: Response) => {
         try {
-            const limit = req.query.limit ? parseInt(req.query.limit) : (req.body.limit || 10);
+            const { token, userId, limit = 10 } = req.body;
+
+            // Validate required fields
+            if (!token || !userId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'token and userId are required in request body'
+                });
+            }
+
             logger.info(`Starting insight collection with limit: ${limit}`);
-            const posts = await this.threadsService.getMedia(limit);
+
+            const threadsService = new ThreadsService(token, userId);
+            const posts = await threadsService.getMedia(limit);
 
             let savedCount = 0;
 
@@ -90,11 +109,9 @@ export class InsightController {
                     },
                 });
 
-                // Fetch insights
-                const insightsData = await this.threadsService.getInsights(post.id);
+                const insightsData = await threadsService.getInsights(post.id);
 
                 if (insightsData && insightsData.length > 0) {
-                    // Transform insights array to object
                     const metrics: any = {};
                     insightsData.forEach((item: any) => {
                         metrics[item.name] = item.values[0].value;
