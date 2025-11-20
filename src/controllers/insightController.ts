@@ -144,8 +144,21 @@ export class InsightController {
      * @swagger
      * /insights:
      *   get:
-     *     summary: Retrieve all posts with their latest insights
+     *     summary: Retrieve posts with their latest insights for a specific user
      *     tags: [Insights]
+     *     parameters:
+     *       - in: query
+     *         name: userId
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Threads user ID to filter posts
+     *       - in: query
+     *         name: limit
+     *         schema:
+     *           type: integer
+     *           default: 10
+     *         description: Number of posts to retrieve
      *     responses:
      *       200:
      *         description: List of posts with insights
@@ -157,6 +170,8 @@ export class InsightController {
      *                 type: object
      *                 properties:
      *                   id:
+     *                     type: string
+     *                   userId:
      *                     type: string
      *                   caption:
      *                     type: string
@@ -184,6 +199,17 @@ export class InsightController {
      *                           type: integer
      *                         quotes:
      *                           type: integer
+     *       400:
+     *         description: Bad request - userId is required
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                 error:
+     *                   type: string
      *       500:
      *         description: Server error
      *         content:
@@ -198,8 +224,21 @@ export class InsightController {
      */
     getInsights = async (req: Request, res: Response) => {
         try {
+            const { userId, limit } = req.query;
+
+            // Validate required userId parameter
+            if (!userId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'userId is required as a query parameter'
+                });
+            }
+
+            const limitValue = limit ? parseInt(limit as string) : 10;
+
             const insights = await prisma.post.findMany({
                 where: {
+                    userId: userId as string,
                     mediaType: {
                         not: 'REPOST_FACADE'
                     }
@@ -210,7 +249,8 @@ export class InsightController {
                         take: 1 // Get latest insight
                     }
                 },
-                orderBy: { timestamp: 'desc' }
+                orderBy: { timestamp: 'desc' },
+                take: limitValue
             });
             res.json(insights);
         } catch (error) {
