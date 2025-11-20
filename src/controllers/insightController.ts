@@ -93,6 +93,7 @@ export class InsightController {
                 await prisma.post.upsert({
                     where: { id: post.id },
                     update: {
+                        userId: userId,
                         caption: post.text || '',
                         permalink: post.permalink,
                         mediaType: post.media_type,
@@ -101,6 +102,7 @@ export class InsightController {
                     },
                     create: {
                         id: post.id,
+                        userId: userId,
                         caption: post.text || '',
                         permalink: post.permalink,
                         mediaType: post.media_type,
@@ -197,6 +199,11 @@ export class InsightController {
     getInsights = async (req: Request, res: Response) => {
         try {
             const insights = await prisma.post.findMany({
+                where: {
+                    mediaType: {
+                        not: 'REPOST_FACADE'
+                    }
+                },
                 include: {
                     insights: {
                         orderBy: { timestamp: 'desc' },

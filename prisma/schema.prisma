@@ -12,6 +12,7 @@ datasource db {
 
 model Post {
   id        String    @id
+  userId    String?
   caption   String?
   permalink String
   mediaType String?
