@@ -1,0 +1,35 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Post {
+  id        String    @id
+  caption   String?
+  permalink String
+  mediaType String?
+  username  String?
+  timestamp DateTime
+  insights  Insight[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Insight {
+  id        Int      @id @default(autoincrement())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  views     Int?
+  likes     Int?
+  replies   Int?
+  reposts   Int?
+  quotes    Int?
+  timestamp DateTime @default(now())
+}
