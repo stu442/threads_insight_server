@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { ThreadsService } from '../services/threads';
 import logger from '../utils/logger';
+import { CollectInsightsBody, CollectInsightsQuery } from '../types/insight';
 
 const prisma = new PrismaClient();
 
@@ -14,9 +15,55 @@ export class InsightController {
         this.threadsService = new ThreadsService(token, userId);
     }
 
-    collectInsights = async (req: Request, res: Response) => {
+    /**
+     * @swagger
+     * /collect:
+     *   post:
+     *     summary: Collect insights from Threads posts
+     *     tags: [Insights]
+     *     parameters:
+     *       - in: query
+     *         name: limit
+     *         schema:
+     *           type: integer
+     *           default: 10
+     *         description: Number of posts to fetch
+     *     requestBody:
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               limit:
+     *                 type: integer
+     *                 description: Number of posts to fetch (alternative to query param)
+     *     responses:
+     *       200:
+     *         description: Successfully collected insights
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                 message:
+     *                   type: string
+     *       500:
+     *         description: Server error
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                 error:
+     *                   type: string
+     */
+    collectInsights = async (req: Request<{}, {}, CollectInsightsBody, CollectInsightsQuery>, res: Response) => {
         try {
-            const limit = parseInt(req.query.limit as string) || parseInt(req.body.limit) || 10;
+            const limit = req.query.limit ? parseInt(req.query.limit) : (req.body.limit || 10);
             logger.info(`Starting insight collection with limit: ${limit}`);
             const posts = await this.threadsService.getMedia(limit);
 
@@ -74,6 +121,62 @@ export class InsightController {
         }
     };
 
+    /**
+     * @swagger
+     * /insights:
+     *   get:
+     *     summary: Retrieve all posts with their latest insights
+     *     tags: [Insights]
+     *     responses:
+     *       200:
+     *         description: List of posts with insights
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 type: object
+     *                 properties:
+     *                   id:
+     *                     type: string
+     *                   caption:
+     *                     type: string
+     *                   permalink:
+     *                     type: string
+     *                   mediaType:
+     *                     type: string
+     *                   username:
+     *                     type: string
+     *                   timestamp:
+     *                     type: string
+     *                     format: date-time
+     *                   insights:
+     *                     type: array
+     *                     items:
+     *                       type: object
+     *                       properties:
+     *                         views:
+     *                           type: integer
+     *                         likes:
+     *                           type: integer
+     *                         replies:
+     *                           type: integer
+     *                         reposts:
+     *                           type: integer
+     *                         quotes:
+     *                           type: integer
+     *       500:
+     *         description: Server error
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                 error:
+     *                   type: string
+     */
     getInsights = async (req: Request, res: Response) => {
         try {
             const insights = await prisma.post.findMany({
