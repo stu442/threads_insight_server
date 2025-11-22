@@ -1,5 +1,17 @@
 version: '3.8'
 services:
+  app:
+    build: .
+    container_name: threads_app
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://threads_node:threads_node@postgres:5432/threads_db
+      - PORT=3000
+    depends_on:
+      - postgres
+    restart: always
+
   postgres:
     image: postgres:15
     container_name: threads_postgres
@@ -11,6 +23,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: always
 
 volumes:
   postgres_data:
