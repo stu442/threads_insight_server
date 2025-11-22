@@ -13,6 +13,17 @@ const insightController = new InsightController();
 
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+    logger.info(`Incoming ${req.method} request to ${req.url}`);
+    next();
+});
+
+// Health check endpoint
+app.get('/ping', (req, res) => {
+    res.status(200).json({ status: 'ok', message: 'Server is reachable' });
+});
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 app.post('/collect', insightController.collectInsights);
