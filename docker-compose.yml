@@ -10,7 +10,7 @@ services:
       - PORT=3000
     depends_on:
       - postgres
-    command: sh -c "npx prisma db push && npm start"
+    command: sh -c "npx prisma migrate deploy && npm start"
     restart: always
 
   postgres:
