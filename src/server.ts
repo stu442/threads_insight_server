@@ -30,6 +30,5 @@ app.post('/collect', insightController.collectInsights);
 app.get('/insights', insightController.getInsights);
 
 app.listen(Number(port), '0.0.0.0', () => {
-    logger.info('🚀 Server is starting... (Deployment Check v1)');
     logger.info(`Server is running on http://localhost:${port}`);
 });
