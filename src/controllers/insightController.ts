@@ -81,14 +81,17 @@ export class InsightController {
                 });
             }
 
-            logger.info(`Starting insight collection with limit: ${limit}`);
+            logger.info(`Starting insight collection for user ${userId} with limit: ${limit}`);
 
             const threadsService = new ThreadsService(token, userId);
             const posts = await threadsService.getMedia(limit);
 
+            logger.info(`Fetched ${posts.length} posts from Threads API`);
+
             let savedCount = 0;
 
             for (const post of posts) {
+                logger.info(`Processing post: ${post.id}`);
                 // Save or update post
                 await prisma.post.upsert({
                     where: { id: post.id },
@@ -114,6 +117,7 @@ export class InsightController {
                 const insightsData = await threadsService.getInsights(post.id);
 
                 if (insightsData && insightsData.length > 0) {
+                    logger.info(`Insights found for post: ${post.id}`);
                     const metrics: any = {};
                     insightsData.forEach((item: any) => {
                         metrics[item.name] = item.values[0].value;
@@ -130,9 +134,12 @@ export class InsightController {
                         },
                     });
                     savedCount++;
+                } else {
+                    logger.info(`No insights found for post: ${post.id}`);
                 }
             }
 
+            logger.info(`Successfully collected insights for ${savedCount} posts`);
             res.json({ success: true, message: `Collected insights for ${savedCount} posts` });
         } catch (error) {
             logger.error('Error in collectInsights:', error);

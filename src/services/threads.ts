@@ -1,4 +1,5 @@
 import axios from 'axios';
+import logger from '../utils/logger';
 
 const THREADS_API_BASE = 'https://graph.threads.net/v1.0';
 
@@ -20,9 +21,10 @@ export class ThreadsService {
                     limit: limit
                 }
             });
+            logger.info(`Threads API Response for getMedia: ${JSON.stringify(response.data)}`);
             return response.data.data;
         } catch (error) {
-            console.error('Error fetching media:', error);
+            logger.error('Error fetching media:', error);
             throw error;
         }
     }
