@@ -8,7 +8,7 @@ export interface Post {
   title: string
   date: string
   topic: string
-  tone: string
+  tags: string[]
   engagement: string
   views: number
   likes: number
@@ -51,12 +51,17 @@ export function PostsTable({ posts, detailed = false }: PostsTableProps) {
                 </Badge>
               </TableCell>
               <TableCell>
-                <Badge
-                  variant="secondary"
-                  className="font-normal text-xs bg-muted text-muted-foreground hover:bg-muted/80"
-                >
-                  {post.tone}
-                </Badge>
+                <div className="flex flex-wrap gap-1">
+                  {post.tags.map((tag) => (
+                    <Badge
+                      key={`${post.id}-${tag}`}
+                      variant="secondary"
+                      className="font-normal text-xs bg-muted text-muted-foreground hover:bg-muted/80"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
               </TableCell>
               <TableCell className="text-center text-sm">{post.engagement}</TableCell>
               <TableCell className="text-center text-sm">{formatNumber(post.views)}</TableCell>

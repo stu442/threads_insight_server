@@ -22,7 +22,7 @@ export default async function DashboardPage() {
         title: post.caption ? (post.caption.length > 50 ? post.caption.slice(0, 50) + "..." : post.caption) : "No Caption",
         date: new Date(post.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         topic: "TEST", // Placeholder as API doesn't provide topic yet
-        tone: "TEST", // Placeholder
+        tags: ["#test"], // Placeholder
         engagement: `${post.metrics.engagement}%`,
         views: post.metrics.views,
         likes: post.metrics.likes,

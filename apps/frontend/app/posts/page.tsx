@@ -4,33 +4,50 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { SearchIcon } from "lucide-react"
+import { getAnalytics } from "@/lib/api"
 
-const MOCK_POSTS: Post[] = Array.from({ length: 10 }).map((_, i) => ({
-  id: `post-${i + 1}`,
-  title: [
-    "5 Ways to Boost Productivity Without Burnout",
-    "Why I Stopped Using To-Do Lists",
-    "The Future of Remote Work in 2025",
-    "My Morning Routine for Maximum Focus",
-    "How to Learn New Skills Fast",
-    "The Art of Deep Work",
-    "Minimalism in Digital Design",
-    "Understanding React Server Components",
-    "Building Scalable Systems",
-    "The Psychology of Habit Formation",
-  ][i],
-  date: `Oct ${24 - i}`,
-  topic: ["Productivity", "Self-dev", "Work", "Lifestyle", "Learning"][i % 5],
-  tone: ["Insightful", "Controversial", "Analytical", "Personal", "Educational"][i % 5],
-  engagement: `${(Math.random() * 5 + 2).toFixed(1)}%`,
-  views: Math.floor(Math.random() * 5000) + 1200,
-  likes: Math.floor(Math.random() * 800) + 80,
-  replies: Math.floor(Math.random() * 80),
-  reposts: Math.floor(Math.random() * 60),
-  quotes: Math.floor(Math.random() * 40),
-}))
+// TODO: Replace with actual user ID from auth context
+const USER_ID = "32547435728232967"
+const FALLBACK_TOPICS = ["Productivity", "Growth", "Strategy", "Community", "Tech"]
+const FALLBACK_TAGS = ["#productivity", "#threads", "#growth", "#marketing", "#dev"]
 
-export default function PostsPage() {
+const truncateText = (text: string, maxLength: number) => {
+  if (text.length <= maxLength) return text
+  return `${text.slice(0, maxLength)}...`
+}
+
+export default async function PostsPage() {
+  let posts: Post[] = []
+
+  try {
+    const analyticsData = await getAnalytics(USER_ID)
+
+    posts =
+      analyticsData?.posts?.map((post, index) => {
+        const topic = FALLBACK_TOPICS[index % FALLBACK_TOPICS.length]
+        const tags = [
+          FALLBACK_TAGS[index % FALLBACK_TAGS.length],
+          FALLBACK_TAGS[(index + 2) % FALLBACK_TAGS.length],
+        ]
+
+        return {
+          id: post.id,
+          title: post.caption ? truncateText(post.caption, 70) : "No Caption",
+          date: new Date(post.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          topic,
+          tags,
+          engagement: post.metrics?.engagement !== undefined ? `${post.metrics.engagement}%` : "-",
+          views: post.metrics?.views ?? 0,
+          likes: post.metrics?.likes ?? 0,
+          replies: post.metrics?.replies ?? 0,
+          reposts: post.metrics?.reposts ?? 0,
+          quotes: post.metrics?.quotes ?? 0,
+        }
+      }) || []
+  } catch (error) {
+    console.error("Failed to fetch analytics:", error)
+  }
+
   return (
     <AppShell className="max-w-5xl space-y-8">
       <div className="flex flex-col gap-2">
@@ -75,7 +92,7 @@ export default function PostsPage() {
         </div>
       </div>
 
-      <PostsTable posts={MOCK_POSTS} />
+      <PostsTable posts={posts} />
 
       <div className="flex items-center justify-between border-t pt-4">
         <div className="text-sm text-muted-foreground">Page 1 of 5</div>
