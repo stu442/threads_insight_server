@@ -441,11 +441,17 @@ export class InsightController {
      *           default: desc
      *         description: Sort order
      *       - in: query
-     *         name: limit
+     *         name: page
+     *         schema:
+     *           type: integer
+     *           default: 1
+     *         description: Page number (1-based)
+     *       - in: query
+     *         name: pageSize
      *         schema:
      *           type: integer
      *           default: 10
-     *         description: Number of posts to return
+     *         description: Number of posts per page
      *     responses:
      *       200:
      *         description: User analytics retrieved successfully
@@ -515,7 +521,7 @@ export class InsightController {
      */
     getUserAnalytics = async (req: Request, res: Response) => {
         try {
-            const { userId, startDate, endDate, sortBy = 'date', sortOrder = 'desc', limit } = req.query;
+            const { userId, startDate, endDate, sortBy = 'date', sortOrder = 'desc', page = '1', pageSize = '10' } = req.query;
 
             if (!userId) {
                 return res.status(400).json({
@@ -524,7 +530,17 @@ export class InsightController {
                 });
             }
 
-            const limitValue = limit ? parseInt(limit as string) : 10;
+            const pageNumber = parseInt(page as string, 10);
+            const pageSizeNumber = parseInt(pageSize as string, 10);
+
+            if (isNaN(pageNumber) || isNaN(pageSizeNumber) || pageNumber < 1 || pageSizeNumber < 1) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'page must be >= 1 and pageSize must be > 0'
+                });
+            }
+
+            const offset = (pageNumber - 1) * pageSizeNumber;
 
             logger.info(`Fetching analytics for user ${userId}`);
 
@@ -532,11 +548,6 @@ export class InsightController {
             const dateFilter: any = {};
             if (startDate) {
                 dateFilter.gte = new Date(startDate as string);
-            } else {
-                // Default to last 7 days if no start date provided
-                const weekAgo = new Date();
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                dateFilter.gte = weekAgo;
             }
 
             if (endDate) {
@@ -555,7 +566,7 @@ export class InsightController {
             const posts = await prisma.post.findMany({
                 where: {
                     userId: userId as string,
-                    timestamp: dateFilter,
+                    timestamp: Object.keys(dateFilter).length ? dateFilter : undefined,
                     mediaType: { not: 'REPOST_FACADE' }
                 },
                 include: {
@@ -615,8 +626,12 @@ export class InsightController {
                 ? formattedPosts.reduce((sum, p) => sum + p.metrics.engagement, 0) / formattedPosts.length
                 : 0;
 
-            // Apply limit for the returned posts list
-            const limitedPosts = formattedPosts.slice(0, limitValue);
+            // Apply pagination after sorting
+            const pagedPosts = formattedPosts.slice(offset, offset + pageSizeNumber);
+
+            const totalPages = Math.ceil(formattedPosts.length / pageSizeNumber) || 1;
+            const hasNext = pageNumber < totalPages;
+            const hasPrev = pageNumber > 1;
 
             // Format response
             const response = {
@@ -626,17 +641,25 @@ export class InsightController {
                     periodStats: {
                         period: {
                             from: dateFilter.gte ? dateFilter.gte.toISOString() : null,
-                            to: dateFilter.lte ? dateFilter.lte.toISOString() : new Date().toISOString()
+                            to: dateFilter.lte ? dateFilter.lte.toISOString() : null
                         },
                         postCount: formattedPosts.length, // Count of posts in period (unlimited)
                         totalLikes,
                         averageEngagement: parseFloat(avgEngagement.toFixed(2))
                     },
-                    posts: limitedPosts
+                    pagination: {
+                        page: pageNumber,
+                        pageSize: pageSizeNumber,
+                        total: formattedPosts.length,
+                        totalPages,
+                        hasNext,
+                        hasPrev
+                    },
+                    posts: pagedPosts
                 }
             };
 
-            logger.info(`Analytics retrieved for user ${userId}: ${formattedPosts.length} posts in period, returning top ${limitedPosts.length}`);
+            logger.info(`Analytics retrieved for user ${userId}: ${formattedPosts.length} posts in period, returning page ${pageNumber} (${pagedPosts.length} items)`);
             res.json(response);
         } catch (error) {
             logger.error('Error in getUserAnalytics:', error);

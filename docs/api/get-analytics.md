@@ -6,14 +6,15 @@
 - **Method**: `GET`
 - **Query Parameters**:
   - `userId` (string, 필수): Threads 사용자 ID
-  - `startDate` (string, 선택): 조회 시작 날짜 (ISO 8601, 예: `2025-01-01`)
-  - `endDate` (string, 선택): 조회 종료 날짜 (ISO 8601, 예: `2025-12-31`)
+  - `startDate` (string, 선택): 조회 시작 날짜 (ISO 8601, 예: `2025-01-01`), 미지정 시 전체 기간
+  - `endDate` (string, 선택): 조회 종료 날짜 (ISO 8601, 예: `2025-12-31`), 미지정 시 전체 기간
   - `sortBy` (string, 선택): 정렬 기준 (`date`, `views`, `likes`, `engagement`, 기본값: `date`)
   - `sortOrder` (string, 선택): 정렬 순서 (`asc`, `desc`, 기본값: `desc`)
-  - `limit` (integer, 선택): 반환할 게시물 수 (기본값: 10)
+  - `page` (integer, 선택): 페이지 번호(1-base, 기본값: 1)
+  - `pageSize` (integer, 선택): 페이지당 게시물 수(기본값: 10, 0보다 커야 함)
 
   **요청 예시**:
-  `GET /analytics?userId=123456789&startDate=2025-01-01&sortBy=views&limit=5`
+  `GET /analytics?userId=123456789&startDate=2025-01-01&sortBy=views&page=2&pageSize=5`
 
 - **성공 응답**:
   - **Code**: 200
@@ -31,6 +32,14 @@
           "postCount": 7,
           "totalLikes": 250,
           "averageEngagement": 12.45
+        },
+        "pagination": {
+          "page": 2,
+          "pageSize": 5,
+          "total": 37,
+          "totalPages": 8,
+          "hasNext": true,
+          "hasPrev": true
         },
         "posts": [
           {
@@ -58,6 +67,13 @@
     {
       "success": false,
       "error": "userId is required as a query parameter"
+    }
+    ```
+  - **Code**: 400 (유효하지 않은 page/pageSize)
+    ```json
+    {
+      "success": false,
+      "error": "page must be >= 1 and pageSize must be > 0"
     }
     ```
   - **Code**: 500 (서버 에러)

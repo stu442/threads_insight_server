@@ -36,6 +36,14 @@ export interface AnalyticsData {
         totalLikes: number;
         averageEngagement: number;
     };
+    pagination?: {
+        page: number;
+        pageSize: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+    };
     posts: Array<{
         id: string;
         caption: string;
@@ -52,6 +60,28 @@ export interface AnalyticsData {
     }>;
 }
 
-export async function getAnalytics(userId: string): Promise<AnalyticsData> {
-    return fetchAPI<AnalyticsData>(`/analytics?userId=${userId}`);
+export interface AnalyticsQuery {
+    startDate?: string;
+    endDate?: string;
+    sortBy?: 'date' | 'views' | 'likes' | 'engagement';
+    sortOrder?: 'asc' | 'desc';
+    page?: number;
+    pageSize?: number;
+}
+
+export async function getAnalytics(userId: string, query: AnalyticsQuery = {}): Promise<AnalyticsData> {
+    const params = new URLSearchParams();
+    params.set('userId', userId);
+
+    if (query.startDate) params.set('startDate', query.startDate);
+    if (query.endDate) params.set('endDate', query.endDate);
+    if (query.sortBy) params.set('sortBy', query.sortBy);
+    if (query.sortOrder) params.set('sortOrder', query.sortOrder);
+    if (query.page && query.page > 0) params.set('page', String(query.page));
+    if (query.pageSize && query.pageSize > 0) params.set('pageSize', String(query.pageSize));
+
+    return fetchAPI<AnalyticsData>(`/analytics?${params.toString()}`, {
+        cache: 'no-store',
+        next: { revalidate: 0 }
+    });
 }

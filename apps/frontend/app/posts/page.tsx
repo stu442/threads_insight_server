@@ -4,23 +4,56 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { SearchIcon } from "lucide-react"
-import { getAnalytics } from "@/lib/api"
+import { getAnalytics, type AnalyticsData } from "@/lib/api"
+import Link from "next/link"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 // TODO: Replace with actual user ID from auth context
 const USER_ID = "32547435728232967"
 const FALLBACK_TOPICS = ["Productivity", "Growth", "Strategy", "Community", "Tech"]
 const FALLBACK_TAGS = ["#productivity", "#threads", "#growth", "#marketing", "#dev"]
+const DEFAULT_PAGE_SIZE = 10
 
 const truncateText = (text: string, maxLength: number) => {
   if (text.length <= maxLength) return text
   return `${text.slice(0, maxLength)}...`
 }
 
-export default async function PostsPage() {
+type PostsPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}
+
+const parseNumberParam = (value: string | string[] | undefined, fallback: number, min: number) => {
+  const parsed = Number(Array.isArray(value) ? value[0] : value)
+  if (Number.isNaN(parsed) || parsed < min) return fallback
+  return parsed
+}
+
+const buildPageLink = (page: number, pageSize: number, totalPages?: number) => {
+  const clampedPage = Math.max(1, totalPages ? Math.min(page, totalPages) : page)
+  const params = new URLSearchParams()
+  if (clampedPage > 1) params.set("page", String(clampedPage))
+  if (pageSize !== DEFAULT_PAGE_SIZE) params.set("pageSize", String(pageSize))
+  const query = params.toString()
+  return query ? `/posts?${query}` : "/posts"
+}
+
+export default async function PostsPage({ searchParams }: PostsPageProps) {
+  const resolvedSearchParams = (await searchParams) ?? {}
+  const currentPage = parseNumberParam(resolvedSearchParams.page, 1, 1)
+  const currentPageSize = parseNumberParam(resolvedSearchParams.pageSize, DEFAULT_PAGE_SIZE, 1)
+
   let posts: Post[] = []
+  let pagination: AnalyticsData["pagination"] | undefined
 
   try {
-    const analyticsData = await getAnalytics(USER_ID)
+    const analyticsData = await getAnalytics(USER_ID, {
+      page: currentPage,
+      pageSize: currentPageSize,
+    })
+    pagination = analyticsData?.pagination
 
     posts =
       analyticsData?.posts?.map((post, index) => {
@@ -95,13 +128,53 @@ export default async function PostsPage() {
       <PostsTable posts={posts} />
 
       <div className="flex items-center justify-between border-t pt-4">
-        <div className="text-sm text-muted-foreground">Page 1 of 5</div>
+        <div className="text-sm text-muted-foreground">
+          Page {pagination?.page ?? currentPage} of {pagination?.totalPages ?? Math.max(currentPage, 1)}
+        </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled>
-            Previous
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            disabled={!(pagination?.hasPrev ?? currentPage > 1)}
+            className={!(pagination?.hasPrev ?? currentPage > 1) ? "opacity-60 cursor-not-allowed" : ""}
+          >
+            <Link
+              href={buildPageLink(
+                Math.max(1, (pagination?.page ?? currentPage) - 1),
+                currentPageSize,
+                pagination?.totalPages
+              )}
+            >
+              Previous
+            </Link>
           </Button>
-          <Button variant="outline" size="sm">
-            Next
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            disabled={
+              pagination
+                ? !pagination.hasNext
+                : posts.length < currentPageSize
+            }
+            className={
+              (pagination
+                ? !pagination.hasNext
+                : posts.length < currentPageSize)
+                ? "opacity-60 cursor-not-allowed"
+                : ""
+            }
+          >
+            <Link
+              href={buildPageLink(
+                (pagination?.page ?? currentPage) + 1,
+                currentPageSize,
+                pagination?.totalPages
+              )}
+            >
+              Next
+            </Link>
           </Button>
         </div>
       </div>
