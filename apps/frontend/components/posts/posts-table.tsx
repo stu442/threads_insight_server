@@ -10,8 +10,11 @@ export interface Post {
   topic: string
   tone: string
   engagement: string
-  saves: number
-  score?: number
+  views: number
+  likes: number
+  replies: number
+  reposts: number
+  quotes: number
 }
 
 interface PostsTableProps {
@@ -21,7 +24,7 @@ interface PostsTableProps {
 
 export function PostsTable({ posts, detailed = false }: PostsTableProps) {
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -29,17 +32,19 @@ export function PostsTable({ posts, detailed = false }: PostsTableProps) {
             <TableHead>Content Preview</TableHead>
             <TableHead>Topic</TableHead>
             <TableHead>Tone</TableHead>
-            <TableHead className="text-right">Eng. Rate</TableHead>
-            <TableHead className="text-right">Saves</TableHead>
-            {detailed && <TableHead className="text-right">Score</TableHead>}
-            <TableHead className="text-right">Action</TableHead>
+            <TableHead className="text-center">Eng. Rate</TableHead>
+            <TableHead className="text-center">Views</TableHead>
+            <TableHead className="text-center">Likes</TableHead>
+            <TableHead className="text-center">Replies</TableHead>
+            <TableHead className="text-center">Reposts</TableHead>
+            <TableHead className="text-center">Quotes</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {posts.map((post) => (
             <TableRow key={post.id}>
               <TableCell className="font-medium text-muted-foreground text-xs whitespace-nowrap">{post.date}</TableCell>
-              <TableCell className="max-w-[300px] truncate font-medium text-sm">{post.title}</TableCell>
+              <TableCell className="max-w-[250px] truncate font-medium text-sm">{post.title}</TableCell>
               <TableCell>
                 <Badge variant="outline" className="font-normal text-xs">
                   {post.topic}
@@ -53,16 +58,12 @@ export function PostsTable({ posts, detailed = false }: PostsTableProps) {
                   {post.tone}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right text-sm">{post.engagement}</TableCell>
-              <TableCell className="text-right text-sm">{post.saves}</TableCell>
-              {detailed && <TableCell className="text-right text-sm">{post.score}</TableCell>}
-              <TableCell className="text-right">
-                <Link href={`/posts/${post.id}`}>
-                  <Button variant="outline" size="sm" className="h-7 text-xs bg-transparent">
-                    Details
-                  </Button>
-                </Link>
-              </TableCell>
+              <TableCell className="text-center text-sm">{post.engagement}</TableCell>
+              <TableCell className="text-cente text-sm">{post.views.toLocaleString()}</TableCell>
+              <TableCell className="text-center text-sm">{post.likes.toLocaleString()}</TableCell>
+              <TableCell className="text-center text-sm">{post.replies.toLocaleString()}</TableCell>
+              <TableCell className="text-center text-sm">{post.reposts.toLocaleString()}</TableCell>
+              <TableCell className="text-center text-sm">{post.quotes.toLocaleString()}</TableCell>
             </TableRow>
           ))}
         </TableBody>

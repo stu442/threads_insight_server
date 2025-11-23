@@ -3,61 +3,37 @@ import { KPICard } from "@/components/kpi-card"
 import { PostsTable, type Post } from "@/components/posts/posts-table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { getAnalytics } from "@/lib/api"
 
-const MOCK_POSTS: Post[] = [
-  {
-    id: "1",
-    title: "5 Ways to Boost Productivity Without Burnout",
-    date: "Oct 24",
-    topic: "Productivity",
-    tone: "Insightful",
-    engagement: "4.2%",
-    saves: 128,
-    score: 92,
-  },
-  {
-    id: "2",
-    title: "Why I Stopped Using To-Do Lists (And What I Do Instead)",
-    date: "Oct 22",
-    topic: "Self-development",
-    tone: "Controversial",
-    engagement: "6.8%",
-    saves: 342,
-    score: 98,
-  },
-  {
-    id: "3",
-    title: "The Future of Remote Work in 2025",
-    date: "Oct 20",
-    topic: "Work",
-    tone: "Analytical",
-    engagement: "3.1%",
-    saves: 85,
-    score: 84,
-  },
-  {
-    id: "4",
-    title: "My Morning Routine for Maximum Focus",
-    date: "Oct 18",
-    topic: "Lifestyle",
-    tone: "Personal",
-    engagement: "3.9%",
-    saves: 112,
-    score: 88,
-  },
-  {
-    id: "5",
-    title: "How to Learn New Skills Fast",
-    date: "Oct 15",
-    topic: "Learning",
-    tone: "Educational",
-    engagement: "5.5%",
-    saves: 210,
-    score: 94,
-  },
-]
+// TODO: Replace with actual user ID from auth context or configuration
+const USER_ID = "32547435728232967"
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  let analyticsData = null
+  let posts: Post[] = []
+
+  try {
+    analyticsData = await getAnalytics(USER_ID)
+
+    if (analyticsData?.posts) {
+      posts = analyticsData.posts.map((post) => ({
+        id: post.id,
+        title: post.caption ? (post.caption.length > 50 ? post.caption.slice(0, 50) + "..." : post.caption) : "No Caption",
+        date: new Date(post.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        topic: "TEST", // Placeholder as API doesn't provide topic yet
+        tone: "TEST", // Placeholder
+        engagement: `${post.metrics.engagement}%`,
+        views: post.metrics.views,
+        likes: post.metrics.likes,
+        replies: post.metrics.replies,
+        reposts: post.metrics.reposts,
+        quotes: post.metrics.quotes,
+      }))
+    }
+  } catch (error) {
+    console.error("Failed to fetch analytics:", error)
+  }
+
   return (
     <AppShell className="max-w-5xl space-y-8">
       <div className="flex flex-col gap-2">
@@ -66,10 +42,16 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard title="Total Posts" value="1,248" />
-        <KPICard title="Avg Engagement (7d)" value="4.8%" trend="up" trendValue="12% vs last week" />
-        <KPICard title="Top Topic" value="Self-dev" subtext="32% of total engagement" />
-        <KPICard title="Best Combo" value="Insight · List" subtext="Highest conversion rate" />
+        <KPICard
+          title="Total Posts"
+          value={analyticsData?.totalPosts.toLocaleString() || "-"}
+        />
+        <KPICard
+          title="Avg Engagement (7d)"
+          value={analyticsData?.weeklyStats.averageEngagement ? `${analyticsData.weeklyStats.averageEngagement}%` : "-"}
+        />
+        <KPICard title="Top Topic" value="TEST" subtext="TEST_TEST" />
+        <KPICard title="Top Tag" value="TEST" subtext="TEST_TEST" />
       </div>
 
       <div className="space-y-4">
@@ -79,7 +61,7 @@ export default function DashboardPage() {
             View all
           </Button>
         </div>
-        <PostsTable posts={MOCK_POSTS} detailed />
+        <PostsTable posts={posts.length > 0 ? posts : []} detailed />
       </div>
 
       <div className="space-y-4">
