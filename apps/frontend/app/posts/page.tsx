@@ -23,7 +23,11 @@ const MOCK_POSTS: Post[] = Array.from({ length: 10 }).map((_, i) => ({
   topic: ["Productivity", "Self-dev", "Work", "Lifestyle", "Learning"][i % 5],
   tone: ["Insightful", "Controversial", "Analytical", "Personal", "Educational"][i % 5],
   engagement: `${(Math.random() * 5 + 2).toFixed(1)}%`,
-  saves: Math.floor(Math.random() * 300) + 50,
+  views: Math.floor(Math.random() * 5000) + 1200,
+  likes: Math.floor(Math.random() * 800) + 80,
+  replies: Math.floor(Math.random() * 80),
+  reposts: Math.floor(Math.random() * 60),
+  quotes: Math.floor(Math.random() * 40),
 }))
 
 export default function PostsPage() {

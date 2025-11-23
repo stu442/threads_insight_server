@@ -1,7 +1,7 @@
-import Link from "next/link"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+
+const formatNumber = (value?: number) => (value ?? 0).toLocaleString()
 
 export interface Post {
   id: string
@@ -59,11 +59,11 @@ export function PostsTable({ posts, detailed = false }: PostsTableProps) {
                 </Badge>
               </TableCell>
               <TableCell className="text-center text-sm">{post.engagement}</TableCell>
-              <TableCell className="text-cente text-sm">{post.views.toLocaleString()}</TableCell>
-              <TableCell className="text-center text-sm">{post.likes.toLocaleString()}</TableCell>
-              <TableCell className="text-center text-sm">{post.replies.toLocaleString()}</TableCell>
-              <TableCell className="text-center text-sm">{post.reposts.toLocaleString()}</TableCell>
-              <TableCell className="text-center text-sm">{post.quotes.toLocaleString()}</TableCell>
+              <TableCell className="text-center text-sm">{formatNumber(post.views)}</TableCell>
+              <TableCell className="text-center text-sm">{formatNumber(post.likes)}</TableCell>
+              <TableCell className="text-center text-sm">{formatNumber(post.replies)}</TableCell>
+              <TableCell className="text-center text-sm">{formatNumber(post.reposts)}</TableCell>
+              <TableCell className="text-center text-sm">{formatNumber(post.quotes)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
