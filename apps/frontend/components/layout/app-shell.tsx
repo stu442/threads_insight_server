@@ -14,7 +14,7 @@ export function AppShell({ children, className }: AppShellProps) {
         <div className="container mx-auto flex h-14 items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-8">
             <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-              <span className="text-lg tracking-tight">CIAS</span>
+              <span className="text-lg tracking-tight">NO_NAME_PROJECT</span>
             </Link>
             <nav className="hidden md:flex gap-6 text-sm font-medium">
               <Link href="/dashboard" className="text-muted-foreground transition-colors hover:text-foreground">
