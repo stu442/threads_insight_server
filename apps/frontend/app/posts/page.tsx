@@ -88,41 +88,26 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         <p className="text-sm text-muted-foreground">Browse and analyze your posts</p>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full max-w-sm">
-          <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input type="search" placeholder="Search in content..." className="pl-9 w-full" />
-        </div>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <Select>
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Topic" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="productivity">Productivity</SelectItem>
-              <SelectItem value="self-dev">Self-dev</SelectItem>
-              <SelectItem value="work">Work</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select>
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Tone" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="insightful">Insightful</SelectItem>
-              <SelectItem value="educational">Educational</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select>
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Style" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="list">List</SelectItem>
-              <SelectItem value="story">Story</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="flex gap-2 w-full justify-end sm:w-auto">
+        <Select>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="Topic" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="productivity">Productivity</SelectItem>
+            <SelectItem value="self-dev">Self-dev</SelectItem>
+            <SelectItem value="work">Work</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="Tags" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="insightful">Insightful</SelectItem>
+            <SelectItem value="educational">Educational</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <PostsTable posts={posts} />
