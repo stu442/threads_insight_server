@@ -10,9 +10,10 @@
   - `endDate` (string, 선택): 조회 종료 날짜 (ISO 8601, 예: `2025-12-31`)
   - `sortBy` (string, 선택): 정렬 기준 (`date`, `views`, `likes`, `engagement`, 기본값: `date`)
   - `sortOrder` (string, 선택): 정렬 순서 (`asc`, `desc`, 기본값: `desc`)
+  - `limit` (integer, 선택): 반환할 게시물 수 (기본값: 10)
 
   **요청 예시**:
-  `GET /analytics?userId=123456789&startDate=2025-01-01&sortBy=views`
+  `GET /analytics?userId=123456789&startDate=2025-01-01&sortBy=views&limit=5`
 
 - **성공 응답**:
   - **Code**: 200
@@ -77,4 +78,4 @@
   - 해당 기간 게시물 수
   - 총 좋아요 수
   - 평균 인게이지먼트 비율
-- **posts**: 해당 기간의 게시물 목록 및 각 게시물의 상세 지표 (정렬 옵션 적용)
+- **posts**: 해당 기간의 게시물 목록 및 각 게시물의 상세 지표 (정렬 옵션 및 limit 적용)

@@ -56,7 +56,7 @@ export default async function DashboardPage() {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium">Top Performing Posts</h2>
+          <h2 className="text-lg font-medium">Recently Posts</h2>
           <Button variant="ghost" size="sm" className="text-muted-foreground">
             View all
           </Button>

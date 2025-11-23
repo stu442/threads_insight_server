@@ -440,6 +440,12 @@ export class InsightController {
      *           enum: [asc, desc]
      *           default: desc
      *         description: Sort order
+     *       - in: query
+     *         name: limit
+     *         schema:
+     *           type: integer
+     *           default: 10
+     *         description: Number of posts to return
      *     responses:
      *       200:
      *         description: User analytics retrieved successfully
@@ -509,7 +515,7 @@ export class InsightController {
      */
     getUserAnalytics = async (req: Request, res: Response) => {
         try {
-            const { userId, startDate, endDate, sortBy = 'date', sortOrder = 'desc' } = req.query;
+            const { userId, startDate, endDate, sortBy = 'date', sortOrder = 'desc', limit } = req.query;
 
             if (!userId) {
                 return res.status(400).json({
@@ -517,6 +523,8 @@ export class InsightController {
                     error: 'userId is required as a query parameter'
                 });
             }
+
+            const limitValue = limit ? parseInt(limit as string) : 10;
 
             logger.info(`Fetching analytics for user ${userId}`);
 
@@ -601,11 +609,14 @@ export class InsightController {
                 return (valA - valB) * order;
             });
 
-            // Calculate statistics for the selected period
+            // Calculate statistics for the selected period (based on ALL posts in period)
             const totalLikes = formattedPosts.reduce((sum, p) => sum + p.metrics.likes, 0);
             const avgEngagement = formattedPosts.length > 0
                 ? formattedPosts.reduce((sum, p) => sum + p.metrics.engagement, 0) / formattedPosts.length
                 : 0;
+
+            // Apply limit for the returned posts list
+            const limitedPosts = formattedPosts.slice(0, limitValue);
 
             // Format response
             const response = {
@@ -617,15 +628,15 @@ export class InsightController {
                             from: dateFilter.gte ? dateFilter.gte.toISOString() : null,
                             to: dateFilter.lte ? dateFilter.lte.toISOString() : new Date().toISOString()
                         },
-                        postCount: formattedPosts.length,
+                        postCount: formattedPosts.length, // Count of posts in period (unlimited)
                         totalLikes,
                         averageEngagement: parseFloat(avgEngagement.toFixed(2))
                     },
-                    posts: formattedPosts
+                    posts: limitedPosts
                 }
             };
 
-            logger.info(`Analytics retrieved for user ${userId}: ${formattedPosts.length} posts in period`);
+            logger.info(`Analytics retrieved for user ${userId}: ${formattedPosts.length} posts in period, returning top ${limitedPosts.length}`);
             res.json(response);
         } catch (error) {
             logger.error('Error in getUserAnalytics:', error);
