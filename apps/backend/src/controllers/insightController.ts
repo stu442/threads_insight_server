@@ -414,6 +414,32 @@ export class InsightController {
      *         schema:
      *           type: string
      *         description: Threads user ID
+     *       - in: query
+     *         name: startDate
+     *         schema:
+     *           type: string
+     *           format: date-time
+     *         description: Start date for filtering posts (ISO 8601)
+     *       - in: query
+     *         name: endDate
+     *         schema:
+     *           type: string
+     *           format: date-time
+     *         description: End date for filtering posts (ISO 8601)
+     *       - in: query
+     *         name: sortBy
+     *         schema:
+     *           type: string
+     *           enum: [date, views, likes, engagement]
+     *           default: date
+     *         description: Field to sort by
+     *       - in: query
+     *         name: sortOrder
+     *         schema:
+     *           type: string
+     *           enum: [asc, desc]
+     *           default: desc
+     *         description: Sort order
      *     responses:
      *       200:
      *         description: User analytics retrieved successfully
@@ -429,7 +455,7 @@ export class InsightController {
      *                   properties:
      *                     totalPosts:
      *                       type: integer
-     *                     weeklyStats:
+     *                     periodStats:
      *                       type: object
      *                       properties:
      *                         period:
@@ -441,7 +467,7 @@ export class InsightController {
      *                             to:
      *                               type: string
      *                               format: date-time
-     *                         totalPosts:
+     *                         postCount:
      *                           type: integer
      *                         totalLikes:
      *                           type: integer
@@ -451,6 +477,31 @@ export class InsightController {
      *                       type: array
      *                       items:
      *                         type: object
+     *                         properties:
+     *                           id:
+     *                             type: string
+     *                           caption:
+     *                             type: string
+     *                           permalink:
+     *                             type: string
+     *                           timestamp:
+     *                             type: string
+     *                             format: date-time
+     *                           metrics:
+     *                             type: object
+     *                             properties:
+     *                               views:
+     *                                 type: integer
+     *                               likes:
+     *                                 type: integer
+     *                               replies:
+     *                                 type: integer
+     *                               reposts:
+     *                                 type: integer
+     *                               quotes:
+     *                                 type: integer
+     *                               engagement:
+     *                                 type: number
      *       400:
      *         description: Bad request
      *       500:
@@ -458,7 +509,7 @@ export class InsightController {
      */
     getUserAnalytics = async (req: Request, res: Response) => {
         try {
-            const { userId } = req.query;
+            const { userId, startDate, endDate, sortBy = 'date', sortOrder = 'desc' } = req.query;
 
             if (!userId) {
                 return res.status(400).json({
@@ -469,7 +520,22 @@ export class InsightController {
 
             logger.info(`Fetching analytics for user ${userId}`);
 
-            // Get total posts count
+            // Build date filter
+            const dateFilter: any = {};
+            if (startDate) {
+                dateFilter.gte = new Date(startDate as string);
+            } else {
+                // Default to last 7 days if no start date provided
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                dateFilter.gte = weekAgo;
+            }
+
+            if (endDate) {
+                dateFilter.lte = new Date(endDate as string);
+            }
+
+            // Get total posts count (all time)
             const totalPosts = await prisma.post.count({
                 where: {
                     userId: userId as string,
@@ -477,15 +543,11 @@ export class InsightController {
                 }
             });
 
-            // Calculate date for one week ago
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 7);
-
-            // Fetch weekly posts with insights and analytics
-            const weeklyPosts = await prisma.post.findMany({
+            // Fetch posts with insights and analytics based on date filter
+            const posts = await prisma.post.findMany({
                 where: {
                     userId: userId as string,
-                    timestamp: { gte: weekAgo },
+                    timestamp: dateFilter,
                     mediaType: { not: 'REPOST_FACADE' }
                 },
                 include: {
@@ -494,51 +556,76 @@ export class InsightController {
                         take: 1
                     },
                     analytics: true
-                },
-                orderBy: { timestamp: 'desc' }
+                }
             });
 
-            // Calculate weekly statistics
-            const totalLikes = weeklyPosts.reduce((sum, p) =>
-                sum + (p.insights[0]?.likes || 0), 0);
+            // Process and format posts
+            let formattedPosts = posts.map(p => ({
+                id: p.id,
+                caption: p.caption || '',
+                permalink: p.permalink,
+                timestamp: p.timestamp.toISOString(),
+                metrics: {
+                    views: p.insights[0]?.views || 0,
+                    likes: p.insights[0]?.likes || 0,
+                    replies: p.insights[0]?.replies || 0,
+                    reposts: p.insights[0]?.reposts || 0,
+                    quotes: p.insights[0]?.quotes || 0,
+                    engagement: parseFloat((p.analytics?.engagementRate || 0).toFixed(2))
+                }
+            }));
 
-            const avgEngagement = weeklyPosts.length > 0
-                ? weeklyPosts.reduce((sum, p) =>
-                    sum + (p.analytics?.engagementRate || 0), 0) / weeklyPosts.length
+            // Sort posts
+            const order = sortOrder === 'asc' ? 1 : -1;
+            formattedPosts.sort((a, b) => {
+                let valA, valB;
+                switch (sortBy) {
+                    case 'views':
+                        valA = a.metrics.views;
+                        valB = b.metrics.views;
+                        break;
+                    case 'likes':
+                        valA = a.metrics.likes;
+                        valB = b.metrics.likes;
+                        break;
+                    case 'engagement':
+                        valA = a.metrics.engagement;
+                        valB = b.metrics.engagement;
+                        break;
+                    case 'date':
+                    default:
+                        valA = new Date(a.timestamp).getTime();
+                        valB = new Date(b.timestamp).getTime();
+                        break;
+                }
+                return (valA - valB) * order;
+            });
+
+            // Calculate statistics for the selected period
+            const totalLikes = formattedPosts.reduce((sum, p) => sum + p.metrics.likes, 0);
+            const avgEngagement = formattedPosts.length > 0
+                ? formattedPosts.reduce((sum, p) => sum + p.metrics.engagement, 0) / formattedPosts.length
                 : 0;
 
             // Format response
             const response = {
                 success: true,
                 data: {
-                    totalPosts,
-                    weeklyStats: {
+                    totalPosts, // Total posts all time
+                    periodStats: {
                         period: {
-                            from: weekAgo.toISOString(),
-                            to: new Date().toISOString()
+                            from: dateFilter.gte ? dateFilter.gte.toISOString() : null,
+                            to: dateFilter.lte ? dateFilter.lte.toISOString() : new Date().toISOString()
                         },
-                        totalPosts: weeklyPosts.length,
+                        postCount: formattedPosts.length,
                         totalLikes,
                         averageEngagement: parseFloat(avgEngagement.toFixed(2))
                     },
-                    posts: weeklyPosts.map(p => ({
-                        id: p.id,
-                        caption: p.caption || '',
-                        permalink: p.permalink,
-                        timestamp: p.timestamp.toISOString(),
-                        metrics: {
-                            views: p.insights[0]?.views || 0,
-                            likes: p.insights[0]?.likes || 0,
-                            replies: p.insights[0]?.replies || 0,
-                            reposts: p.insights[0]?.reposts || 0,
-                            quotes: p.insights[0]?.quotes || 0,
-                            engagement: parseFloat((p.analytics?.engagementRate || 0).toFixed(2))
-                        }
-                    }))
+                    posts: formattedPosts
                 }
             };
 
-            logger.info(`Analytics retrieved: ${totalPosts} total posts, ${weeklyPosts.length} weekly posts`);
+            logger.info(`Analytics retrieved for user ${userId}: ${formattedPosts.length} posts in period`);
             res.json(response);
         } catch (error) {
             logger.error('Error in getUserAnalytics:', error);

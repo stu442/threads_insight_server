@@ -48,7 +48,7 @@ export default async function DashboardPage() {
         />
         <KPICard
           title="Avg Engagement (7d)"
-          value={analyticsData?.weeklyStats.averageEngagement ? `${analyticsData.weeklyStats.averageEngagement}%` : "-"}
+          value={analyticsData?.periodStats.averageEngagement ? `${analyticsData.periodStats.averageEngagement}%` : "-"}
         />
         <KPICard title="Top Topic" value="TEST" subtext="TEST_TEST" />
         <KPICard title="Top Tag" value="TEST" subtext="TEST_TEST" />

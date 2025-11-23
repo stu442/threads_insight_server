@@ -27,7 +27,7 @@ export async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): 
 
 export interface AnalyticsData {
     totalPosts: number;
-    weeklyStats: {
+    periodStats: {
         period: {
             from: string;
             to: string;
