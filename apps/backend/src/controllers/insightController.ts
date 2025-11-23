@@ -123,8 +123,16 @@ export class InsightController {
                         metrics[item.name] = item.values[0].value;
                     });
 
-                    await prisma.insight.create({
-                        data: {
+                    await prisma.insight.upsert({
+                        where: { postId: post.id },
+                        update: {
+                            views: metrics.views || 0,
+                            likes: metrics.likes || 0,
+                            replies: metrics.replies || 0,
+                            reposts: metrics.reposts || 0,
+                            quotes: metrics.quotes || 0,
+                        },
+                        create: {
                             postId: post.id,
                             views: metrics.views || 0,
                             likes: metrics.likes || 0,
@@ -252,7 +260,7 @@ export class InsightController {
                 },
                 include: {
                     insights: {
-                        orderBy: { timestamp: 'desc' },
+                        orderBy: { updatedAt: 'desc' },
                         take: 1 // Get latest insight
                     }
                 },
@@ -332,7 +340,7 @@ export class InsightController {
                 },
                 include: {
                     insights: {
-                        orderBy: { timestamp: 'desc' },
+                        orderBy: { updatedAt: 'desc' },
                         take: 1
                     }
                 }
@@ -482,7 +490,7 @@ export class InsightController {
                 },
                 include: {
                     insights: {
-                        orderBy: { timestamp: 'desc' },
+                        orderBy: { updatedAt: 'desc' },
                         take: 1
                     },
                     analytics: true
