@@ -3,9 +3,18 @@ node_modules
 .pnp
 .pnp.js
 
+# Package manager lock files (unused)
+pnpm-lock.yaml
+
 # Production
 dist
 build
+.turbo
+
+# Next.js
+.next
+out
+*.tsbuildinfo
 
 # Environment
 .env

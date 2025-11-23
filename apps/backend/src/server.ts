@@ -8,7 +8,7 @@ import logger from './utils/logger';
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 const insightController = new InsightController();
 
 app.use(express.json());
@@ -28,6 +28,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 app.post('/collect', insightController.collectInsights);
 app.get('/insights', insightController.getInsights);
+app.post('/analyze', insightController.analyzePostsAnalytics);
+app.get('/analytics', insightController.getUserAnalytics);
 
 app.listen(Number(port), '0.0.0.0', () => {
     logger.info(`Server is running on http://localhost:${port}`);

@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   app:
-    build: .
+    build: ./apps/backend
     container_name: threads_app
     ports:
       - "3001:3000"
