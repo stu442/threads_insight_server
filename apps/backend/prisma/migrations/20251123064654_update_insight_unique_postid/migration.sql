@@ -9,7 +9,7 @@
 -- AlterTable
 ALTER TABLE "Insight" DROP COLUMN "timestamp",
 ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL;
+ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Insight_postId_key" ON "Insight"("postId");
