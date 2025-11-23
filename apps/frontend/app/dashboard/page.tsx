@@ -4,6 +4,7 @@ import { PostsTable, type Post } from "@/components/posts/posts-table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { getAnalytics } from "@/lib/api"
+import Link from "next/link"
 
 // TODO: Replace with actual user ID from auth context or configuration
 const USER_ID = "32547435728232967"
@@ -57,9 +58,11 @@ export default async function DashboardPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium">Recently Posts</h2>
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            View all
-          </Button>
+          <Link href="/posts">
+            <Button variant="ghost" size="sm" className="text-muted-foreground cursor-pointer" >
+              View all
+            </Button>
+          </Link>
         </div>
         <PostsTable posts={posts.length > 0 ? posts : []} detailed />
       </div>

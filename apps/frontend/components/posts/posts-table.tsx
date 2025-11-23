@@ -31,7 +31,7 @@ export function PostsTable({ posts, detailed = false }: PostsTableProps) {
             <TableHead className="w-[100px]">Date</TableHead>
             <TableHead>Content Preview</TableHead>
             <TableHead>Topic</TableHead>
-            <TableHead>Tone</TableHead>
+            <TableHead>Tags</TableHead>
             <TableHead className="text-center">Eng. Rate</TableHead>
             <TableHead className="text-center">Views</TableHead>
             <TableHead className="text-center">Likes</TableHead>
@@ -42,7 +42,7 @@ export function PostsTable({ posts, detailed = false }: PostsTableProps) {
         </TableHeader>
         <TableBody>
           {posts.map((post) => (
-            <TableRow key={post.id}>
+            <TableRow key={post.id} className="cursor-pointer">
               <TableCell className="font-medium text-muted-foreground text-xs whitespace-nowrap">{post.date}</TableCell>
               <TableCell className="max-w-[250px] truncate font-medium text-sm">{post.title}</TableCell>
               <TableCell>
