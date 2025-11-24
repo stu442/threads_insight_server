@@ -1,7 +1,9 @@
 version: '3.8'
 services:
   app:
-    build: ./apps/backend
+    build:
+      context: .
+      dockerfile: apps/backend-nest/Dockerfile
     container_name: threads_app
     ports:
       - "3001:3000"
@@ -10,7 +12,7 @@ services:
       - PORT=3000
     depends_on:
       - postgres
-    command: sh -c "npx prisma migrate deploy && npm start"
+    command: sh -c "npx prisma migrate deploy && node dist/main"
     restart: always
 
   postgres:
