@@ -11,7 +11,7 @@ COPY . .
 RUN npm run build
 
 # Remove dev dependencies to slim the runtime image while keeping generated Prisma client
-RUN npm prune --omit=dev
+# RUN npm prune --omit=dev
 
 FROM node:20-alpine AS runner
 WORKDIR /app
