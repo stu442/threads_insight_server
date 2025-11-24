@@ -61,6 +61,7 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.1.9",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/react": "^19",
