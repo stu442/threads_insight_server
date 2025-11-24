@@ -7,7 +7,7 @@ COPY package.json package-lock.json turbo.json ./
 # Copy package.json of all apps to satisfy workspace requirements for npm ci
 # We use a wildcard to copy if possible, but COPY doesn't support wildcards for directories easily in this way without flattening.
 # So we copy explicitly.
-COPY apps/backend/package.json ./apps/backend/
+
 COPY apps/frontend/package.json ./apps/frontend/
 COPY apps/backend-nest/package.json ./apps/backend-nest/
 
