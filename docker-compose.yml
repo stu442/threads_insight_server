@@ -1,7 +1,9 @@
 version: '3.8'
 services:
   app:
-    build: ./apps/backend-nest
+    build:
+      context: .
+      dockerfile: apps/backend-nest/Dockerfile
     container_name: threads_app
     ports:
       - "3001:3000"

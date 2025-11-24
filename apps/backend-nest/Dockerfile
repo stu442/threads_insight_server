@@ -1,25 +1,40 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-COPY package*.json ./
+# Copy root configuration
+COPY package.json package-lock.json turbo.json ./
+
+# Copy package.json of all apps to satisfy workspace requirements for npm ci
+# We use a wildcard to copy if possible, but COPY doesn't support wildcards for directories easily in this way without flattening.
+# So we copy explicitly.
+COPY apps/backend/package.json ./apps/backend/
+COPY apps/frontend/package.json ./apps/frontend/
+COPY apps/backend-nest/package.json ./apps/backend-nest/
+
+# Install dependencies (using root lockfile)
 RUN npm ci
 
-COPY prisma ./prisma
+# Copy the backend-nest app source
+COPY apps/backend-nest ./apps/backend-nest
+
+# Generate Prisma client
+WORKDIR /app/apps/backend-nest
 RUN npx prisma generate
 
-COPY . .
+# Build the app
 RUN npm run build
-
-# Remove dev dependencies to slim the runtime image while keeping generated Prisma client
-# RUN npm prune --omit=dev
 
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Copy node_modules from builder (root level)
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
+
+# Copy built app artifacts
+COPY --from=builder /app/apps/backend-nest/dist ./dist
+COPY --from=builder /app/apps/backend-nest/prisma ./prisma
+COPY --from=builder /app/apps/backend-nest/package.json ./package.json
 
 EXPOSE 3001
 CMD ["node", "dist/main.js"]
