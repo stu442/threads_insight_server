@@ -3,7 +3,7 @@
 This is a monorepo containing the backend and frontend for the Threads Insight project.
 
 ## Structure
--   `apps/backend`: Node.js + Express + Prisma Server
+-   `apps/backend-nest`: NestJS + Prisma Server
 -   `apps/frontend`: Next.js 14 Dashboard
 
 ## Getting Started
@@ -26,6 +26,3 @@ npm run dev
 ```bash
 npm run build
 ```
-
-## Deployment
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
