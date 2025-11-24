@@ -1,0 +1,59 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Post {
+  id        String         @id
+  userId    String?
+  caption   String?
+  permalink String
+  mediaType String?
+  username  String?
+  timestamp DateTime
+  insights  Insight[]
+  analytics PostAnalytics?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model Insight {
+  id        Int      @id @default(autoincrement())
+  postId    String   @unique
+  post      Post     @relation(fields: [postId], references: [id])
+  views     Int?
+  likes     Int?
+  replies   Int?
+  reposts   Int?
+  quotes    Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PostAnalytics {
+  id     Int    @id @default(autoincrement())
+  postId String @unique
+  post   Post   @relation(fields: [postId], references: [id])
+
+  // 분석 메트릭
+  engagementRate   Float @default(0)
+  totalEngagements Int   @default(0)
+
+  // 추후 확장을 위한 필드
+  tags     String[] @default([])
+  category String?
+
+  // 타임스탬프
+  calculatedAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([postId])
+  @@index([tags])
+}
