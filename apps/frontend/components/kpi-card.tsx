@@ -16,7 +16,7 @@ export function KPICard({ title, value, subtext, className, icon }: KPICardProps
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           {icon && (
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center text-muted-foreground">
+            <span className="flex shrink-0 items-center justify-center text-muted-foreground">
               {icon}
             </span>
           )}
