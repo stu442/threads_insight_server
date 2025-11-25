@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 
 # Copy root configuration
@@ -12,7 +12,7 @@ COPY apps/frontend/package.json ./apps/frontend/
 COPY apps/backend-nest/package.json ./apps/backend-nest/
 
 # Install dependencies (using root lockfile)
-RUN npm ci
+RUN npm install
 
 # Copy the backend-nest app source
 COPY apps/backend-nest ./apps/backend-nest
@@ -24,7 +24,7 @@ RUN npx prisma generate
 # Build the app
 RUN npm run build
 
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
