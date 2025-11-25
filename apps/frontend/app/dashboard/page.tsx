@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { getAnalytics } from "@/lib/api"
 import Link from "next/link"
 
+// 페이지가 매번 동적으로 렌더링 되도록 함
+export const dynamic = 'force-dynamic'
+
 // TODO: Replace with actual user ID from auth context or configuration
 const USER_ID = "32547435728232967"
 
