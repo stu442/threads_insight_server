@@ -1,6 +1,7 @@
 import type React from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { ThreadsAvatar } from "@/components/layout/threads-avatar"
 
 interface AppShellProps {
   children: React.ReactNode
@@ -26,7 +27,7 @@ export function AppShell({ children, className }: AppShellProps) {
             </nav>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-muted" />
+            <ThreadsAvatar />
           </div>
         </div>
       </header>
