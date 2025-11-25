@@ -24,6 +24,9 @@ export function AppShell({ children, className }: AppShellProps) {
               <Link href="/posts" className="text-muted-foreground transition-colors hover:text-foreground">
                 Posts
               </Link>
+              <Link href="/analyze" className="text-muted-foreground transition-colors hover:text-foreground">
+                Analyze
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-2">
