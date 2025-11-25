@@ -184,10 +184,16 @@ export class AnalyticsService {
             return (valA - valB) * order;
         });
 
-        // Calculate statistics for the selected period (based on ALL posts in period)
-        const totalLikes = formattedPosts.reduce((sum, p) => sum + p.metrics.likes, 0);
-        const avgEngagement = formattedPosts.length > 0
-            ? formattedPosts.reduce((sum, p) => sum + p.metrics.engagement, 0) / formattedPosts.length
+        // Calculate statistics for the last 7 days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const last7DaysPosts = formattedPosts.filter(p => new Date(p.timestamp) >= sevenDaysAgo);
+
+        const totalLikes = last7DaysPosts.reduce((sum, p) => sum + p.metrics.likes, 0);
+        const totalEngagement = last7DaysPosts.reduce((sum, p) => sum + p.metrics.engagement, 0);
+        const avgEngagement = last7DaysPosts.length > 0
+            ? totalEngagement / last7DaysPosts.length
             : 0;
 
         // Apply pagination after sorting

@@ -17,6 +17,18 @@ interface ThreadsMedia {
     is_quote_post: boolean;
 }
 
+interface ThreadsPagingResponse {
+    data: ThreadsMedia[];
+    paging?: {
+        cursors?: {
+            before: string;
+            after: string;
+        };
+        next?: string;
+        previous?: string;
+    };
+}
+
 interface ThreadsInsight {
     name: string;
     period: string;
@@ -45,6 +57,44 @@ export class ThreadsService {
     private readonly baseUrl = 'https://graph.threads.net/v1.0';
 
     constructor() { }
+
+    async getAllMedia(token: string, userId: string, maxLimit?: number): Promise<ThreadsMedia[]> {
+        const allPosts: ThreadsMedia[] = [];
+        let nextUrl: string | undefined = `${this.baseUrl}/${userId}/threads`;
+
+        while (nextUrl) {
+            try {
+                const isFirstRequest = nextUrl === `${this.baseUrl}/${userId}/threads`;
+                const response = await axios.get<ThreadsPagingResponse>(nextUrl, {
+                    params: isFirstRequest ? {
+                        fields: 'id,media_product_type,media_type,media_url,permalink,owner,username,text,timestamp,shortcode,is_quote_post',
+                        access_token: token,
+                        limit: 100,
+                    } : undefined, // next URL already includes all parameters
+                });
+
+                if (response.data?.data) {
+                    allPosts.push(...response.data.data);
+                    this.logger.log(`Fetched ${response.data.data.length} posts, total: ${allPosts.length}`);
+                }
+
+                // Check maxLimit
+                if (maxLimit && allPosts.length >= maxLimit) {
+                    this.logger.log(`Reached maxLimit: ${maxLimit}`);
+                    return allPosts.slice(0, maxLimit);
+                }
+
+                // Continue to next page if available
+                nextUrl = response.data?.paging?.next;
+            } catch (error) {
+                this.logger.error(`Error fetching media page`, error);
+                throw error;
+            }
+        }
+
+        this.logger.log(`Completed fetching all media. Total: ${allPosts.length}`);
+        return allPosts;
+    }
 
     async getMedia(token: string, userId: string, limit: number = 10): Promise<ThreadsMedia[]> {
         try {
