@@ -49,6 +49,7 @@ export interface AnalyticsData {
         caption: string;
         permalink: string;
         timestamp: string;
+        tags: string[];
         metrics: {
             views: number;
             likes: number;

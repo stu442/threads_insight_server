@@ -8,6 +8,30 @@ export class AnalyticsService {
 
     constructor(private readonly prisma: PrismaService) { }
 
+    /**
+     * Generate length-based tags for a post based on its caption length
+     * Returns tags like: len-100, len-200, len-300, len-400, len-500
+     */
+    private generateLengthTags(caption: string | null): string[] {
+        const tags: string[] = [];
+        const length = caption?.length || 0;
+
+        // Determine which length category this post falls into
+        if (length <= 100) {
+            tags.push('len-100');
+        } else if (length <= 200) {
+            tags.push('len-200');
+        } else if (length <= 300) {
+            tags.push('len-300');
+        } else if (length <= 400) {
+            tags.push('len-400');
+        } else {
+            tags.push('len-500');
+        }
+
+        return tags;
+    }
+
     async analyzePosts(userId: string, postIds?: string[]): Promise<{ analyzedCount: number; skippedCount: number }> {
         this.logger.log(`Starting analytics calculation for user ${userId}`);
 
@@ -49,22 +73,27 @@ export class AnalyticsService {
                 ? (totalEngagements / (latestInsight.views || 1)) * 100
                 : 0;
 
+            // Generate tags based on post length
+            const tags = this.generateLengthTags(post.caption);
+
             // Save analytics to database
             await this.prisma.postAnalytics.upsert({
                 where: { postId: post.id },
                 update: {
                     engagementRate,
                     totalEngagements,
+                    tags,
                     calculatedAt: new Date()
                 },
                 create: {
                     postId: post.id,
                     engagementRate,
-                    totalEngagements
+                    totalEngagements,
+                    tags
                 }
             });
 
-            this.logger.log(`Analyzed post ${post.id}: engagement rate = ${engagementRate.toFixed(2)}%`);
+            this.logger.log(`Analyzed post ${post.id}: engagement rate = ${engagementRate.toFixed(2)}%, tags = ${tags.join(', ')}`);
             analyzedCount++;
         }
 
@@ -118,6 +147,7 @@ export class AnalyticsService {
             caption: p.caption || '',
             permalink: p.permalink,
             timestamp: p.timestamp.toISOString(),
+            tags: p.analytics?.tags || [],
             metrics: {
                 views: p.insights[0]?.views || 0,
                 likes: p.insights[0]?.likes || 0,

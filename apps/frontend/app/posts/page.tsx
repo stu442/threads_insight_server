@@ -58,17 +58,13 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     posts =
       analyticsData?.posts?.map((post, index) => {
         const topic = FALLBACK_TOPICS[index % FALLBACK_TOPICS.length]
-        const tags = [
-          FALLBACK_TAGS[index % FALLBACK_TAGS.length],
-          FALLBACK_TAGS[(index + 2) % FALLBACK_TAGS.length],
-        ]
 
         return {
           id: post.id,
           title: post.caption ? truncateText(post.caption, 70) : "No Caption",
           date: new Date(post.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
           topic,
-          tags,
+          tags: post.tags || [], // Use actual tags from API
           engagement: post.metrics?.engagement !== undefined ? `${post.metrics.engagement}%` : "-",
           views: post.metrics?.views ?? 0,
           likes: post.metrics?.likes ?? 0,
