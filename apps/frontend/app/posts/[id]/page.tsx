@@ -4,7 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight, Eye, Heart, MessageCircle, Repeat2, TrendingUp } from "lucide-react"
+import { notFound } from "next/navigation"
+
+import { getPost } from "@/lib/api"
 
 interface PageProps {
   params: Promise<{
@@ -15,11 +18,35 @@ interface PageProps {
 export default async function PostDetailPage({ params }: PageProps) {
   const { id } = await params
 
+  let post;
+  try {
+    post = await getPost(id);
+  } catch (error) {
+    // If post is not found, show 404 page
+    notFound();
+  }
+
+  const insights = post.insights[0] || {
+    views: 0,
+    likes: 0,
+    replies: 0,
+    reposts: 0,
+    quotes: 0
+  };
+
+  const analytics = post.analytics || {
+    engagementRate: 0,
+    tags: [],
+    category: 'Uncategorized'
+  };
+
   return (
     <AppShell className="max-w-3xl space-y-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">📌 Post Detail</h1>
-        <p className="text-sm text-muted-foreground">ID: {id} · Published on Oct 24, 2023 · 10:42 AM</p>
+        <p className="text-sm text-muted-foreground">
+          ID: {post.id} · Published on {new Date(post.timestamp).toLocaleDateString()} · {new Date(post.timestamp).toLocaleTimeString()}
+        </p>
       </div>
 
       <div className="space-y-6">
@@ -27,33 +54,26 @@ export default async function PostDetailPage({ params }: PageProps) {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Original Content</CardTitle>
-              <Button variant="outline" size="sm" className="h-7 gap-1 text-xs bg-transparent">
-                Open in Threads <ArrowUpRight className="h-3 w-3" />
+              <Button variant="outline" size="sm" className="h-7 gap-1 text-xs bg-transparent" asChild>
+                <a href={post.permalink} target="_blank" rel="noopener noreferrer">
+                  Open in Threads <ArrowUpRight className="h-3 w-3" />
+                </a>
               </Button>
             </CardHeader>
             <CardContent>
-              <p className="text-sm leading-relaxed">
-                Stop trying to be productive 24/7. It’s a trap.
-                <br />
-                <br />
-                Real growth happens in the rest periods, not just the grind. Think of it like muscle growth: you lift to
-                tear, you rest to repair.
-                <br />
-                <br />
-                If you never rest, you just break.
-                <br />
-                <br />
-                #Productivity #MentalHealth #Growth
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                {post.caption}
               </p>
             </CardContent>
           </Card>
         </section>
 
-        <section className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-          <KPICard title="Impressions" value="12.5k" />
-          <KPICard title="Likes" value="842" />
-          <KPICard title="Saves" value="342" />
-          <KPICard title="Eng. Rate" value="6.8%" trend="up" trendValue="high" />
+        <section className="grid gap-4 grid-cols-2 sm:grid-cols-5">
+          <KPICard title="Views" value={insights.views.toLocaleString()} icon={<Eye className="h-4 w-4" />} />
+          <KPICard title="Likes" value={insights.likes.toLocaleString()} icon={<Heart className="h-4 w-4" />} />
+          <KPICard title="Replies" value={insights.replies.toLocaleString()} icon={<MessageCircle className="h-4 w-4" />} />
+          <KPICard title="Reposts" value={insights.reposts.toLocaleString()} icon={<Repeat2 className="h-4 w-4" />} />
+          <KPICard title="Eng. Rate" value={`${analytics.engagementRate.toFixed(1)}% `} icon={<TrendingUp className="h-4 w-4" />} />
         </section>
 
         <section>
@@ -65,37 +85,22 @@ export default async function PostDetailPage({ params }: PageProps) {
               <div className="flex flex-wrap gap-6">
                 <div className="space-y-1.5">
                   <span className="text-xs text-muted-foreground block">Topic</span>
-                  <Badge variant="outline">Self-development</Badge>
-                </div>
-                <div className="space-y-1.5">
-                  <span className="text-xs text-muted-foreground block">Tone</span>
-                  <Badge variant="secondary">Direct</Badge>
-                </div>
-                <div className="space-y-1.5">
-                  <span className="text-xs text-muted-foreground block">Style</span>
-                  <Badge variant="secondary">Short-form</Badge>
-                </div>
-                <div className="space-y-1.5">
-                  <span className="text-xs text-muted-foreground block">Emotion</span>
-                  <Badge variant="secondary">Empowering</Badge>
+                  <Badge variant="outline">{analytics.category || 'Uncategorized'}</Badge>
                 </div>
               </div>
               <Separator />
               <div className="space-y-1.5">
                 <span className="text-xs text-muted-foreground block">Keywords</span>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="font-normal text-muted-foreground">
-                    Productivity
-                  </Badge>
-                  <Badge variant="outline" className="font-normal text-muted-foreground">
-                    Rest
-                  </Badge>
-                  <Badge variant="outline" className="font-normal text-muted-foreground">
-                    Growth
-                  </Badge>
-                  <Badge variant="outline" className="font-normal text-muted-foreground">
-                    Mental Health
-                  </Badge>
+                  {analytics.tags && analytics.tags.length > 0 ? (
+                    analytics.tags.map((tag: string) => (
+                      <Badge key={tag} variant="outline" className="font-normal text-muted-foreground">
+                        {tag}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">No tags available</span>
+                  )}
                 </div>
               </div>
             </CardContent>

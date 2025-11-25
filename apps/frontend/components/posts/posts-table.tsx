@@ -1,5 +1,8 @@
+"use client"
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { useRouter } from "next/navigation"
 
 const formatNumber = (value?: number) => (value ?? 0).toLocaleString()
 
@@ -23,6 +26,8 @@ interface PostsTableProps {
 }
 
 export function PostsTable({ posts, detailed = false }: PostsTableProps) {
+  const router = useRouter()
+
   return (
     <div className="rounded-md border overflow-x-auto">
       <Table>
@@ -42,7 +47,11 @@ export function PostsTable({ posts, detailed = false }: PostsTableProps) {
         </TableHeader>
         <TableBody>
           {posts.map((post) => (
-            <TableRow key={post.id} className="cursor-pointer">
+            <TableRow
+              key={post.id}
+              className="hover:bg-muted/50 cursor-pointer"
+              onClick={() => router.push(`/posts/${post.id}`)}
+            >
               <TableCell className="font-medium text-muted-foreground text-xs whitespace-nowrap">{post.date}</TableCell>
               <TableCell className="max-w-[250px] truncate font-medium text-sm">{post.title}</TableCell>
               <TableCell>

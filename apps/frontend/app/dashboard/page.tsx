@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { getAnalytics } from "@/lib/api"
 import Link from "next/link"
 
+// 페이지가 매번 동적으로 렌더링 되도록 함
+export const dynamic = 'force-dynamic'
+
 // TODO: Replace with actual user ID from auth context or configuration
 const USER_ID = "32547435728232967"
 
@@ -22,7 +25,7 @@ export default async function DashboardPage() {
         title: post.caption ? (post.caption.length > 50 ? post.caption.slice(0, 50) + "..." : post.caption) : "No Caption",
         date: new Date(post.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         topic: "TEST", // Placeholder as API doesn't provide topic yet
-        tags: ["#test"], // Placeholder
+        tags: post.tags || [], // Use actual tags from API
         engagement: `${post.metrics.engagement}%`,
         views: post.metrics.views,
         likes: post.metrics.likes,

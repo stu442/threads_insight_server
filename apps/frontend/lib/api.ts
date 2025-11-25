@@ -49,6 +49,7 @@ export interface AnalyticsData {
         caption: string;
         permalink: string;
         timestamp: string;
+        tags: string[];
         metrics: {
             views: number;
             likes: number;
@@ -80,8 +81,32 @@ export async function getAnalytics(userId: string, query: AnalyticsQuery = {}): 
     if (query.page && query.page > 0) params.set('page', String(query.page));
     if (query.pageSize && query.pageSize > 0) params.set('pageSize', String(query.pageSize));
 
-    return fetchAPI<AnalyticsData>(`/analytics?${params.toString()}`, {
-        cache: 'no-store',
-        next: { revalidate: 0 }
-    });
+    return fetchAPI<AnalyticsData>(`/analytics?${params.toString()}`);
+}
+
+export interface PostDetail {
+    id: string;
+    userId: string;
+    caption: string;
+    permalink: string;
+    mediaType: string;
+    username: string;
+    timestamp: string;
+    insights: Array<{
+        views: number;
+        likes: number;
+        replies: number;
+        reposts: number;
+        quotes: number;
+    }>;
+    analytics?: {
+        engagementRate: number;
+        totalEngagements: number;
+        tags: string[];
+        category: string;
+    };
+}
+
+export async function getPost(id: string): Promise<PostDetail> {
+    return fetchAPI<PostDetail>(`/posts/${id}`);
 }
