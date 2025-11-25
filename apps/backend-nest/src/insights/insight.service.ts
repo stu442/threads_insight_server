@@ -99,4 +99,17 @@ export class InsightService {
             take: limit
         });
     }
+
+    async getPost(id: string) {
+        return await this.prisma.post.findUnique({
+            where: { id },
+            include: {
+                insights: {
+                    orderBy: { updatedAt: 'desc' },
+                    take: 1
+                },
+                analytics: true
+            }
+        });
+    }
 }

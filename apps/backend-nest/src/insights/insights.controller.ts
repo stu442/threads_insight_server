@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Query, InternalServerErrorException, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, InternalServerErrorException, BadRequestException, Param, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { InsightService } from './insight.service';
 import { AnalyticsService } from './analytics.service';
@@ -42,6 +42,28 @@ export class InsightController {
             return await this.insightService.getInsights(query.userId, query.limit);
         } catch (error) {
             throw new InternalServerErrorException({ success: false, error: 'Failed to retrieve insights' });
+        }
+    }
+
+    @Get('posts/:id')
+    @ApiOperation({ summary: 'Retrieve a single post with insights and analytics' })
+    @ApiResponse({ status: 200, description: 'Post details retrieved successfully' })
+    @ApiResponse({ status: 404, description: 'Post not found' })
+    async getPost(@Param('id') id: string) {
+        try {
+            const post = await this.insightService.getPost(id);
+            if (!post) {
+                throw new NotFoundException({ success: false, error: 'Post not found' });
+            }
+            return {
+                success: true,
+                data: post
+            };
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+            throw new InternalServerErrorException({ success: false, error: 'Failed to retrieve post' });
         }
     }
 

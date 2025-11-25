@@ -82,3 +82,30 @@ export async function getAnalytics(userId: string, query: AnalyticsQuery = {}): 
 
     return fetchAPI<AnalyticsData>(`/analytics?${params.toString()}`);
 }
+
+export interface PostDetail {
+    id: string;
+    userId: string;
+    caption: string;
+    permalink: string;
+    mediaType: string;
+    username: string;
+    timestamp: string;
+    insights: Array<{
+        views: number;
+        likes: number;
+        replies: number;
+        reposts: number;
+        quotes: number;
+    }>;
+    analytics?: {
+        engagementRate: number;
+        totalEngagements: number;
+        tags: string[];
+        category: string;
+    };
+}
+
+export async function getPost(id: string): Promise<PostDetail> {
+    return fetchAPI<PostDetail>(`/posts/${id}`);
+}
