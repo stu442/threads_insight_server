@@ -87,6 +87,14 @@ export function TagCorrelationChart() {
         )
     }
 
+    const allSelected = selectedTags.length === availableTags.length && availableTags.length > 0
+    const selectAllTags = () => {
+        setSelectedTags(current => {
+            if (availableTags.length === 0) return current
+            return current.length === availableTags.length ? [] : availableTags
+        })
+    }
+
     if (loading) {
         return (
             <Card className="col-span-2">
@@ -129,6 +137,18 @@ export function TagCorrelationChart() {
                                 <CommandList>
                                     <CommandEmpty>No tag found.</CommandEmpty>
                                     <CommandGroup>
+                                        <CommandItem
+                                            value="__select_all"
+                                            onSelect={selectAllTags}
+                                        >
+                                            <Check
+                                                className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    allSelected ? "opacity-100" : "opacity-0"
+                                                )}
+                                            />
+                                            Select all tags
+                                        </CommandItem>
                                         {availableTags.map((tag) => (
                                             <CommandItem
                                                 key={tag}
@@ -192,10 +212,38 @@ export function TagCorrelationChart() {
                             label={{ value: 'Views', angle: 90, position: 'insideRight', fill: 'hsl(var(--muted-foreground))' }}
                         />
                         <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '6px'
+                            content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
+                                    const data = payload[0].payload;
+                                    return (
+                                        <div className="bg-card border border-border p-3 rounded-lg shadow-lg">
+                                            <p className="font-medium mb-2">{label}</p>
+                                            <div className="space-y-1 text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full bg-primary" />
+                                                    <span className="text-muted-foreground">Posts:</span>
+                                                    <span className="font-medium ml-auto">{data.count}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full bg-primary/30" />
+                                                    <span className="text-muted-foreground">Avg Views:</span>
+                                                    <span className="font-medium ml-auto">{data.avgViews.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full bg-[hsl(142,76%,36%)]" />
+                                                    <span className="text-muted-foreground">Avg Likes:</span>
+                                                    <span className="font-medium ml-auto">{data.avgLikes.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full bg-[hsl(221,83%,53%)]" />
+                                                    <span className="text-muted-foreground">Avg Replies:</span>
+                                                    <span className="font-medium ml-auto">{data.avgReplies.toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
                             }}
                         />
                         <Legend />

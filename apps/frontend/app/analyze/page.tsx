@@ -5,6 +5,7 @@ import { TagDistributionChart } from "@/components/analytics/tag-distribution-ch
 import { TopicAnalysisChart } from "@/components/analytics/topic-analysis-chart"
 import { MetricsComparisonChart } from "@/components/analytics/metrics-comparison-chart"
 import { TagCorrelationChart } from "@/components/analytics/tag-correlation-chart"
+import { CategoryPerformanceChart } from "@/components/analytics/category-performance-chart"
 import { TrendingUp, Eye, Heart, MessageCircle } from "lucide-react"
 
 export default function AnalyzePage() {
@@ -48,6 +49,9 @@ export default function AnalyzePage() {
             <div className="space-y-6">
                 {/* Engagement Trends */}
                 <EngagementChart />
+
+                {/* Category Performance */}
+                <CategoryPerformanceChart />
 
                 {/* Tag Correlation Analysis */}
                 <TagCorrelationChart />

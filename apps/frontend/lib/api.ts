@@ -127,3 +127,18 @@ export interface TagCorrelation {
 export async function getTagCorrelation(userId: string): Promise<TagCorrelation[]> {
     return fetchAPI<TagCorrelation[]>(`/analytics/tags?userId=${userId}`);
 }
+
+export interface CategoryMetrics {
+    category: string;
+    count: number;
+    avgViews: number;
+    avgLikes: number;
+    avgReplies: number;
+    totalViews: number;
+    totalLikes: number;
+    totalReplies: number;
+}
+
+export async function getCategoryMetrics(userId: string): Promise<CategoryMetrics[]> {
+    return fetchAPI<CategoryMetrics[]>(`/analytics/categories?userId=${userId}`);
+}

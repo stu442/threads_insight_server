@@ -168,4 +168,20 @@ export class InsightController {
             throw new InternalServerErrorException({ success: false, error: 'Failed to retrieve tag correlation' });
         }
     }
+
+    @Get('analytics/categories')
+    @ApiTags('Analytics')
+    @ApiOperation({ summary: 'Get category performance analytics' })
+    @ApiResponse({ status: 200, description: 'Category analytics retrieved successfully' })
+    async getCategoryMetrics(@Query('userId') userId: string) {
+        try {
+            const result = await this.analyticsService.getCategoryMetrics(userId);
+            return {
+                success: true,
+                data: result
+            };
+        } catch (error) {
+            throw new InternalServerErrorException({ success: false, error: 'Failed to retrieve category metrics' });
+        }
+    }
 }
