@@ -1,13 +1,34 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { getTagCorrelation, TagCorrelation } from "@/lib/api"
+import { Check, ChevronsUpDown, X } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { Badge } from "@/components/ui/badge"
+
+const LEN_TAG_LABEL = "Length-based Tags (len-*)";
 
 export function TagCorrelationChart() {
     const [data, setData] = useState<TagCorrelation[]>([])
     const [loading, setLoading] = useState(true)
+    const [selectedTags, setSelectedTags] = useState<string[]>([LEN_TAG_LABEL])
+    const [open, setOpen] = useState(false)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -15,10 +36,6 @@ export function TagCorrelationChart() {
                 const userId = process.env.NEXT_PUBLIC_USER_ID
                 if (userId) {
                     const result = await getTagCorrelation(userId)
-                    // Filter for len- tags if needed, or just show all
-                    // The user specifically asked for len- tags, but showing all is fine too.
-                    // Let's filter for len- tags to be specific to the request if there are many tags.
-                    // Actually, let's show all for now, as the backend sorts them.
                     setData(result)
                 }
             } catch (error) {
@@ -29,6 +46,46 @@ export function TagCorrelationChart() {
         }
         fetchData()
     }, [])
+
+    // Extract available tags for the dropdown
+    const availableTags = useMemo(() => {
+        const tags = new Set<string>()
+        let hasLenTags = false
+
+        data.forEach(item => {
+            if (item.tag.startsWith('len-')) {
+                hasLenTags = true
+            } else {
+                tags.add(item.tag)
+            }
+        })
+
+        const sortedTags = Array.from(tags).sort()
+        if (hasLenTags) {
+            return [LEN_TAG_LABEL, ...sortedTags]
+        }
+        return sortedTags
+    }, [data])
+
+    // Filter data based on selection
+    const filteredData = useMemo(() => {
+        if (selectedTags.length === 0) return data
+
+        return data.filter(item => {
+            if (item.tag.startsWith('len-')) {
+                return selectedTags.includes(LEN_TAG_LABEL)
+            }
+            return selectedTags.includes(item.tag)
+        })
+    }, [data, selectedTags])
+
+    const toggleTag = (tag: string) => {
+        setSelectedTags(current =>
+            current.includes(tag)
+                ? current.filter(t => t !== tag)
+                : [...current, tag]
+        )
+    }
 
     if (loading) {
         return (
@@ -47,12 +104,74 @@ export function TagCorrelationChart() {
     return (
         <Card className="col-span-2">
             <CardHeader>
-                <CardTitle>Tag Correlation Analysis</CardTitle>
-                <CardDescription>Average metrics by tag (Views vs Likes/Replies)</CardDescription>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle>Tag Correlation Analysis</CardTitle>
+                        <CardDescription>Average metrics by tag (Views vs Likes/Replies)</CardDescription>
+                    </div>
+                    <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={open}
+                                className="w-[250px] justify-between"
+                            >
+                                {selectedTags.length > 0
+                                    ? `${selectedTags.length} tags selected`
+                                    : "Select tags..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[250px] p-0">
+                            <Command>
+                                <CommandInput placeholder="Search tags..." />
+                                <CommandList>
+                                    <CommandEmpty>No tag found.</CommandEmpty>
+                                    <CommandGroup>
+                                        {availableTags.map((tag) => (
+                                            <CommandItem
+                                                key={tag}
+                                                value={tag}
+                                                onSelect={() => toggleTag(tag)}
+                                            >
+                                                <Check
+                                                    className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        selectedTags.includes(tag) ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                                {tag}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                {selectedTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {selectedTags.map(tag => (
+                            <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => toggleTag(tag)}>
+                                {tag}
+                                <X className="ml-1 h-3 w-3" />
+                            </Badge>
+                        ))}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 px-2 text-xs"
+                            onClick={() => setSelectedTags([])}
+                        >
+                            Clear all
+                        </Button>
+                    </div>
+                )}
             </CardHeader>
             <CardContent>
                 <ResponsiveContainer width="100%" height={400}>
-                    <ComposedChart data={data}>
+                    <ComposedChart data={filteredData}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                         <XAxis
                             dataKey="tag"

@@ -53,8 +53,6 @@ export default function AnalyzePage() {
                 <TagCorrelationChart />
 
                 {/* Two Column Layout */}
-
-                {/* Two Column Layout */}
                 <div className="grid gap-6 lg:grid-cols-2">
                     <TagDistributionChart />
                     <TopicAnalysisChart />
