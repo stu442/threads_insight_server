@@ -74,7 +74,21 @@ export class AnalyticsService {
                 : 0;
 
             // Generate tags based on post length
-            const tags = this.generateLengthTags(post.caption);
+            const lengthTags = this.generateLengthTags(post.caption);
+            let tags = [...lengthTags];
+            let category = null;
+
+            // Preserve any existing GPT-driven analytics (category/tags) and merge with length tags
+            const existingAnalytics = await this.prisma.postAnalytics.findUnique({
+                where: { postId: post.id }
+            });
+
+            if (existingAnalytics) {
+                category = existingAnalytics.category;
+                const existingNonLengthTags = existingAnalytics.tags.filter(t => !t.startsWith('len-'));
+                const uniqueTags = new Set([...tags, ...existingNonLengthTags]);
+                tags = Array.from(uniqueTags);
+            }
 
             // Save analytics to database
             await this.prisma.postAnalytics.upsert({
@@ -83,13 +97,15 @@ export class AnalyticsService {
                     engagementRate,
                     totalEngagements,
                     tags,
+                    category,
                     calculatedAt: new Date()
                 },
                 create: {
                     postId: post.id,
                     engagementRate,
                     totalEngagements,
-                    tags
+                    tags,
+                    category
                 }
             });
 
@@ -226,5 +242,108 @@ export class AnalyticsService {
             },
             posts: pagedPosts
         };
+    }
+    async getTagCorrelation(userId: string) {
+        const posts = await this.prisma.post.findMany({
+            where: {
+                userId,
+                mediaType: { not: 'REPOST_FACADE' }
+            },
+            include: {
+                insights: {
+                    orderBy: { updatedAt: 'desc' },
+                    take: 1
+                },
+                analytics: true
+            }
+        });
+
+        const tagStats: Record<string, { count: number; views: number; likes: number; reposts: number; replies: number }> = {};
+
+        for (const post of posts) {
+            const tags = post.analytics?.tags || [];
+            const insight = post.insights[0];
+
+            if (!insight) continue;
+
+            for (const tag of tags) {
+                if (!tagStats[tag]) {
+                    tagStats[tag] = { count: 0, views: 0, likes: 0, reposts: 0, replies: 0 };
+                }
+
+                tagStats[tag].count++;
+                tagStats[tag].views += insight.views || 0;
+                tagStats[tag].likes += insight.likes || 0;
+                tagStats[tag].reposts += insight.reposts || 0;
+                tagStats[tag].replies += insight.replies || 0;
+            }
+        }
+
+        const result = Object.entries(tagStats).map(([tag, stats]) => ({
+            tag,
+            count: stats.count,
+            avgViews: stats.count > 0 ? Math.round(stats.views / stats.count) : 0,
+            avgLikes: stats.count > 0 ? Math.round(stats.likes / stats.count) : 0,
+            avgReposts: stats.count > 0 ? Math.round(stats.reposts / stats.count) : 0,
+            avgReplies: stats.count > 0 ? Math.round(stats.replies / stats.count) : 0,
+            totalViews: stats.views,
+            totalLikes: stats.likes,
+            totalReposts: stats.reposts,
+            totalReplies: stats.replies
+        }));
+
+        // Sort by tag name to have len-100, len-200 in order
+        result.sort((a, b) => a.tag.localeCompare(b.tag));
+
+        return result;
+    }
+
+    async getCategoryMetrics(userId: string) {
+        const posts = await this.prisma.post.findMany({
+            where: {
+                userId,
+                mediaType: { not: 'REPOST_FACADE' }
+            },
+            include: {
+                insights: {
+                    orderBy: { updatedAt: 'desc' },
+                    take: 1
+                },
+                analytics: true
+            }
+        });
+
+        const categoryStats: Record<string, { count: number; views: number; likes: number; replies: number }> = {};
+
+        for (const post of posts) {
+            const insight = post.insights[0];
+            if (!insight) continue;
+
+            const category = post.analytics?.category || 'Uncategorized';
+
+            if (!categoryStats[category]) {
+                categoryStats[category] = { count: 0, views: 0, likes: 0, replies: 0 };
+            }
+
+            categoryStats[category].count++;
+            categoryStats[category].views += insight.views || 0;
+            categoryStats[category].likes += insight.likes || 0;
+            categoryStats[category].replies += insight.replies || 0;
+        }
+
+        const result = Object.entries(categoryStats).map(([category, stats]) => ({
+            category,
+            count: stats.count,
+            avgViews: stats.count > 0 ? Math.round(stats.views / stats.count) : 0,
+            avgLikes: stats.count > 0 ? Math.round(stats.likes / stats.count) : 0,
+            avgReplies: stats.count > 0 ? Math.round(stats.replies / stats.count) : 0,
+            totalViews: stats.views,
+            totalLikes: stats.likes,
+            totalReplies: stats.replies
+        }));
+
+        result.sort((a, b) => b.totalViews - a.totalViews || a.category.localeCompare(b.category));
+
+        return result;
     }
 }

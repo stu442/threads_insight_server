@@ -1,40 +1,59 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
+import { getTagCorrelation, TagCorrelation } from "@/lib/api"
 
-interface TagDistributionChartProps {
-    data?: Array<{
-        tag: string
-        count: number
-    }>
-}
+export function TagDistributionChart() {
+    const [data, setData] = useState<TagCorrelation[]>([])
+    const [loading, setLoading] = useState(true)
 
-export function TagDistributionChart({ data }: TagDistributionChartProps) {
-    // Mock data for visualization
-    const mockData = data || [
-        { tag: "motivation", count: 24 },
-        { tag: "productivity", count: 19 },
-        { tag: "life-tips", count: 16 },
-        { tag: "tech", count: 14 },
-        { tag: "business", count: 12 },
-        { tag: "len-200", count: 11 },
-        { tag: "wellness", count: 9 },
-        { tag: "len-300", count: 8 },
-        { tag: "career", count: 7 },
-        { tag: "startup", count: 6 },
-    ]
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const userId = process.env.NEXT_PUBLIC_USER_ID
+                if (userId) {
+                    const result = await getTagCorrelation(userId)
+                    // Sort by count descending and take top 10
+                    const sortedData = result
+                        .sort((a, b) => b.count - a.count)
+                        .slice(0, 10)
+                    setData(sortedData)
+                }
+            } catch (error) {
+                console.error("Failed to fetch tag distribution", error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchData()
+    }, [])
+
+    if (loading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Tag Distribution</CardTitle>
+                    <CardDescription>Loading data...</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[350px] flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </CardContent>
+            </Card>
+        )
+    }
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Tag Distribution</CardTitle>
-                <CardDescription>상위 10개 태그별 게시물 수</CardDescription>
+                <CardDescription>Top 10 tags by post count</CardDescription>
             </CardHeader>
             <CardContent>
                 <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={mockData} layout="horizontal">
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <BarChart data={data} layout="vertical" margin={{ left: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={false} />
                         <XAxis
                             type="number"
                             className="text-xs"
@@ -48,17 +67,31 @@ export function TagDistributionChart({ data }: TagDistributionChartProps) {
                             width={100}
                         />
                         <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '6px'
+                            content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
+                                    const data = payload[0].payload;
+                                    return (
+                                        <div className="bg-card border border-border p-3 rounded-lg shadow-lg">
+                                            <p className="font-medium mb-1">{label}</p>
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <span className="text-muted-foreground">Posts:</span>
+                                                <span className="font-medium">{data.count}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
                             }}
                         />
                         <Bar
                             dataKey="count"
-                            fill="hsl(var(--primary))"
                             radius={[0, 4, 4, 0]}
-                        />
+                            barSize={20}
+                        >
+                            {data.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill="hsl(var(--primary))" />
+                            ))}
+                        </Bar>
                     </BarChart>
                 </ResponsiveContainer>
             </CardContent>
