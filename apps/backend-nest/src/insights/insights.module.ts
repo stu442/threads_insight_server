@@ -4,9 +4,12 @@ import { InsightService } from './insight.service';
 import { AnalyticsService } from './analytics.service';
 import { ThreadsModule } from '../threads/threads.module';
 
+import { OpenAIService } from './openai.service';
+import { PostLabelingService } from './post-labeling.service';
+
 @Module({
     imports: [ThreadsModule],
     controllers: [InsightController],
-    providers: [InsightService, AnalyticsService],
+    providers: [InsightService, AnalyticsService, PostLabelingService, OpenAIService],
 })
 export class InsightsModule { }

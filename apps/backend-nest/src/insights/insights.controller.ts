@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, Query, InternalServerErrorException, BadRe
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { InsightService } from './insight.service';
 import { AnalyticsService } from './analytics.service';
+import { PostLabelingService } from './post-labeling.service';
 import {
     CollectInsightsReqDto,
     GetInsightsReqDto,
@@ -10,7 +11,9 @@ import {
     CollectInsightsResDto,
     AnalyzePostsResDto,
     PostWithInsightsDto,
-    GetAnalyticsResDto
+    GetAnalyticsResDto,
+    LabelPostsReqDto,
+    LabelPostsResDto
 } from './dto';
 
 @ApiTags('Insights')
@@ -19,6 +22,7 @@ export class InsightController {
     constructor(
         private readonly insightService: InsightService,
         private readonly analyticsService: AnalyticsService,
+        private readonly postLabelingService: PostLabelingService,
     ) { }
 
     @Get('collect/full')
@@ -127,6 +131,26 @@ export class InsightController {
             };
         } catch (error) {
             throw new InternalServerErrorException({ success: false, error: 'Failed to retrieve analytics' });
+        }
+    }
+
+    @Post('analytics/label')
+    @ApiTags('Analytics')
+    @ApiOperation({ summary: 'Generate GPT-based category/tags for posts' })
+    @ApiResponse({ status: 200, description: 'Labeling completed successfully' })
+    async labelPosts(@Body() body: LabelPostsReqDto): Promise<LabelPostsResDto> {
+        try {
+            const result = await this.postLabelingService.labelPosts(body.userId, body.postIds, body.force ?? false);
+            return {
+                success: true,
+                message: `Labeled ${result.labeledCount} posts`,
+                labeledCount: result.labeledCount,
+                skippedCount: result.skippedCount,
+                failedCount: result.failedCount,
+                failures: result.failures
+            };
+        } catch (error) {
+            throw new InternalServerErrorException({ success: false, error: 'Failed to label posts' });
         }
     }
     @Get('analytics/tags')

@@ -74,7 +74,21 @@ export class AnalyticsService {
                 : 0;
 
             // Generate tags based on post length
-            const tags = this.generateLengthTags(post.caption);
+            const lengthTags = this.generateLengthTags(post.caption);
+            let tags = [...lengthTags];
+            let category = null;
+
+            // Preserve any existing GPT-driven analytics (category/tags) and merge with length tags
+            const existingAnalytics = await this.prisma.postAnalytics.findUnique({
+                where: { postId: post.id }
+            });
+
+            if (existingAnalytics) {
+                category = existingAnalytics.category;
+                const existingNonLengthTags = existingAnalytics.tags.filter(t => !t.startsWith('len-'));
+                const uniqueTags = new Set([...tags, ...existingNonLengthTags]);
+                tags = Array.from(uniqueTags);
+            }
 
             // Save analytics to database
             await this.prisma.postAnalytics.upsert({
@@ -83,13 +97,15 @@ export class AnalyticsService {
                     engagementRate,
                     totalEngagements,
                     tags,
+                    category,
                     calculatedAt: new Date()
                 },
                 create: {
                     postId: post.id,
                     engagementRate,
                     totalEngagements,
-                    tags
+                    tags,
+                    category
                 }
             });
 

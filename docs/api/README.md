@@ -16,6 +16,7 @@ Base URL: `http://localhost:3001` (개발) 또는 배포된 URL
 - [인사이트 조회](./get-insights.md)
 - [게시물 분석](./analyze-posts.md)
 - [사용자 분석 조회](./get-analytics.md)
+- [게시물 라벨 생성 (GPT)](./analytics-label.md)
 - [태그별 반응 분석](./get-analytics-tags.md)
 
 ## 환경 변수
