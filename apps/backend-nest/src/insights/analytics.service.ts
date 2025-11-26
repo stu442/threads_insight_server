@@ -227,4 +227,58 @@ export class AnalyticsService {
             posts: pagedPosts
         };
     }
+    async getTagCorrelation(userId: string) {
+        const posts = await this.prisma.post.findMany({
+            where: {
+                userId,
+                mediaType: { not: 'REPOST_FACADE' }
+            },
+            include: {
+                insights: {
+                    orderBy: { updatedAt: 'desc' },
+                    take: 1
+                },
+                analytics: true
+            }
+        });
+
+        const tagStats: Record<string, { count: number; views: number; likes: number; reposts: number; replies: number }> = {};
+
+        for (const post of posts) {
+            const tags = post.analytics?.tags || [];
+            const insight = post.insights[0];
+
+            if (!insight) continue;
+
+            for (const tag of tags) {
+                if (!tagStats[tag]) {
+                    tagStats[tag] = { count: 0, views: 0, likes: 0, reposts: 0, replies: 0 };
+                }
+
+                tagStats[tag].count++;
+                tagStats[tag].views += insight.views || 0;
+                tagStats[tag].likes += insight.likes || 0;
+                tagStats[tag].reposts += insight.reposts || 0;
+                tagStats[tag].replies += insight.replies || 0;
+            }
+        }
+
+        const result = Object.entries(tagStats).map(([tag, stats]) => ({
+            tag,
+            count: stats.count,
+            avgViews: stats.count > 0 ? Math.round(stats.views / stats.count) : 0,
+            avgLikes: stats.count > 0 ? Math.round(stats.likes / stats.count) : 0,
+            avgReposts: stats.count > 0 ? Math.round(stats.reposts / stats.count) : 0,
+            avgReplies: stats.count > 0 ? Math.round(stats.replies / stats.count) : 0,
+            totalViews: stats.views,
+            totalLikes: stats.likes,
+            totalReposts: stats.reposts,
+            totalReplies: stats.replies
+        }));
+
+        // Sort by tag name to have len-100, len-200 in order
+        result.sort((a, b) => a.tag.localeCompare(b.tag));
+
+        return result;
+    }
 }

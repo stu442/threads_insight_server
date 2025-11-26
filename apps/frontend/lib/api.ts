@@ -110,3 +110,20 @@ export interface PostDetail {
 export async function getPost(id: string): Promise<PostDetail> {
     return fetchAPI<PostDetail>(`/posts/${id}`);
 }
+
+export interface TagCorrelation {
+    tag: string;
+    count: number;
+    avgViews: number;
+    avgLikes: number;
+    avgReposts: number;
+    avgReplies: number;
+    totalViews: number;
+    totalLikes: number;
+    totalReposts: number;
+    totalReplies: number;
+}
+
+export async function getTagCorrelation(userId: string): Promise<TagCorrelation[]> {
+    return fetchAPI<TagCorrelation[]>(`/analytics/tags?userId=${userId}`);
+}

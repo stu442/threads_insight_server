@@ -16,6 +16,7 @@ Base URL: `http://localhost:3001` (개발) 또는 배포된 URL
 - [인사이트 조회](./get-insights.md)
 - [게시물 분석](./analyze-posts.md)
 - [사용자 분석 조회](./get-analytics.md)
+- [태그별 반응 분석](./get-analytics-tags.md)
 
 ## 환경 변수
 
@@ -24,4 +25,3 @@ Base URL: `http://localhost:3001` (개발) 또는 배포된 URL
 - `THREADS_ACCESS_TOKEN`: Threads API 액세스 토큰
 - `THREADS_USER_ID`: Threads 사용자 ID
 - `DATABASE_URL`: PostgreSQL 데이터베이스 연결 URL
-
