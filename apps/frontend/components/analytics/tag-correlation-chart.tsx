@@ -115,7 +115,7 @@ export function TagCorrelationChart() {
                 <div className="flex items-center justify-between">
                     <div>
                         <CardTitle>Tag Correlation Analysis</CardTitle>
-                        <CardDescription>Average metrics by tag (Views vs Likes/Replies)</CardDescription>
+                        <CardDescription>태그별 평균 지표 (조회수 대비 좋아요/댓글)</CardDescription>
                     </div>
                     <Popover open={open} onOpenChange={setOpen}>
                         <PopoverTrigger asChild>

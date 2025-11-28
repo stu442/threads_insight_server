@@ -3,7 +3,7 @@ import { KPICard } from "@/components/kpi-card"
 import { PostsTable, type Post } from "@/components/posts/posts-table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { getAnalytics } from "@/lib/api"
+import { getAnalytics, getCategoryMetrics } from "@/lib/api"
 import Link from "next/link"
 
 // 페이지가 매번 동적으로 렌더링 되도록 함
@@ -14,17 +14,23 @@ const USER_ID = "32547435728232967"
 
 export default async function DashboardPage() {
   let analyticsData = null
+  let categoryMetrics = null
   let posts: Post[] = []
 
   try {
-    analyticsData = await getAnalytics(USER_ID)
+    const [analytics, metrics] = await Promise.all([
+      getAnalytics(USER_ID),
+      getCategoryMetrics(USER_ID)
+    ])
+    analyticsData = analytics
+    categoryMetrics = metrics
 
     if (analyticsData?.posts) {
       posts = analyticsData.posts.map((post) => ({
         id: post.id,
         title: post.caption ? (post.caption.length > 50 ? post.caption.slice(0, 50) + "..." : post.caption) : "No Caption",
         date: new Date(post.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        topic: "TEST", // Placeholder as API doesn't provide topic yet
+        topic: post.category || "Uncategorized",
         tags: post.tags || [], // Use actual tags from API
         engagement: `${post.metrics.engagement}%`,
         views: post.metrics.views,
@@ -54,7 +60,11 @@ export default async function DashboardPage() {
           title="Avg Engagement (7d)"
           value={analyticsData?.periodStats.averageEngagement ? `${analyticsData.periodStats.averageEngagement}%` : "-"}
         />
-        <KPICard title="Top Topic" value="TEST" subtext="TEST_TEST" />
+        <KPICard
+          title="Top Topic"
+          value={categoryMetrics?.[0]?.category || "-"}
+          subtext={categoryMetrics?.[0] ? `${categoryMetrics[0].count} posts` : undefined}
+        />
         <KPICard title="Top Tag" value="TEST" subtext="TEST_TEST" />
       </div>
 
