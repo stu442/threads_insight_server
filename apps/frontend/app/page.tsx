@@ -205,9 +205,6 @@ export default function LandingPage() {
                 <Badge variant="outline">#tips</Badge>
                 <Badge variant="outline">#personal</Badge>
               </div>
-              <div className="flex items-center justify-center py-4">
-                <ArrowRight className="h-5 w-5 text-muted-foreground" />
-              </div>
               <div className="space-y-3">
                 <BarItem label="#productivity" value={85} />
                 <BarItem label="#casual" value={72} />
