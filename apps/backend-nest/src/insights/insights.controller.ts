@@ -200,4 +200,20 @@ export class InsightController {
             throw new InternalServerErrorException({ success: false, error: 'Failed to retrieve time of day analytics' });
         }
     }
+
+    @Get('analytics/day-of-week')
+    @ApiTags('Analytics')
+    @ApiOperation({ summary: 'Get day of week analytics' })
+    @ApiResponse({ status: 200, description: 'Day of week analytics retrieved successfully' })
+    async getDayOfWeekAnalytics(@Query('userId') userId: string) {
+        try {
+            const result = await this.analyticsService.getDayOfWeekAnalytics(userId);
+            return {
+                success: true,
+                data: result
+            };
+        } catch (error) {
+            throw new InternalServerErrorException({ success: false, error: 'Failed to retrieve day of week analytics' });
+        }
+    }
 }

@@ -395,4 +395,58 @@ export class AnalyticsService {
 
         return result.sort((a, b) => a.hour - b.hour);
     }
+
+    async getDayOfWeekAnalytics(userId: string) {
+        const posts = await this.prisma.post.findMany({
+            where: {
+                userId,
+                mediaType: { not: 'REPOST_FACADE' }
+            },
+            include: {
+                insights: {
+                    orderBy: { updatedAt: 'desc' },
+                    take: 1
+                }
+            }
+        });
+
+        // Initialize 7 days (0=Sun, 1=Mon, ..., 6=Sat)
+        const dailyStats: Record<number, { count: number; views: number; likes: number; replies: number; reposts: number }> = {};
+        for (let i = 0; i < 7; i++) {
+            dailyStats[i] = { count: 0, views: 0, likes: 0, replies: 0, reposts: 0 };
+        }
+
+        for (const post of posts) {
+            const insight = post.insights[0];
+            if (!insight) continue;
+
+            const date = new Date(post.timestamp);
+            // KST (UTC+9) adjustment for day of week
+            // We need to shift the time by 9 hours before getting the day
+            const kstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+            const day = kstDate.getUTCDay(); // 0 (Sunday) - 6 (Saturday)
+
+            dailyStats[day].count++;
+            dailyStats[day].views += insight.views || 0;
+            dailyStats[day].likes += insight.likes || 0;
+            dailyStats[day].replies += insight.replies || 0;
+            dailyStats[day].reposts += insight.reposts || 0;
+        }
+
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        const result = Object.entries(dailyStats).map(([day, stats]) => ({
+            dayIndex: parseInt(day),
+            day: days[parseInt(day)],
+            count: stats.count,
+            avgViews: stats.count > 0 ? Math.round(stats.views / stats.count) : 0,
+            avgLikes: stats.count > 0 ? Math.round(stats.likes / stats.count) : 0,
+            avgReplies: stats.count > 0 ? Math.round(stats.replies / stats.count) : 0,
+            avgReposts: stats.count > 0 ? Math.round(stats.reposts / stats.count) : 0
+        }));
+
+        // Sort by day index (Sun -> Sat)
+        // Or maybe Mon -> Sun? Standard is usually Sun=0. Let's stick to 0-6.
+        return result.sort((a, b) => a.dayIndex - b.dayIndex);
+    }
 }

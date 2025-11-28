@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ComposedChart, Line } from "recharts"
 import { useEffect, useState } from "react"
 
-interface TimeOfDayData {
-    hour: number
+interface DayOfWeekData {
+    dayIndex: number
+    day: string
     count: number
     avgViews: number
     avgLikes: number
@@ -13,8 +14,8 @@ interface TimeOfDayData {
     avgReposts: number
 }
 
-export function TimeOfDayChart() {
-    const [data, setData] = useState<TimeOfDayData[]>([])
+export function DayOfWeekChart() {
+    const [data, setData] = useState<DayOfWeekData[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -22,30 +23,14 @@ export function TimeOfDayChart() {
             try {
                 const userId = process.env.NEXT_PUBLIC_USER_ID
                 if (userId) {
-                    // Use the proxy endpoint which forwards to the backend
-                    // The backend controller is at /analytics/time-of-day
-                    // Assuming the proxy is set up to forward /api/proxy/* to the backend
-                    // Let's verify the API call structure. 
-                    // TagCorrelationChart uses `getTagCorrelation` from `@/lib/api`.
-                    // I should probably add a function to `@/lib/api` as well for consistency,
-                    // but for now I'll fetch directly or create the helper.
-                    // Let's check `@/lib/api` content first? 
-                    // No, let's just use fetch for now to be quick, or better, add to api.ts if possible.
-                    // But I don't want to context switch too much.
-                    // Let's assume /api/proxy/analytics/time-of-day is correct based on other patterns if they exist.
-                    // Wait, TagCorrelationChart imports `getTagCorrelation`.
-                    // I should probably check `apps/frontend/lib/api.ts` to see how it's implemented.
-                    // But to save steps, I'll just use fetch with the same pattern as I would expect.
-                    // If TagCorrelationChart uses a lib function, it likely wraps the fetch.
-
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/analytics/time-of-day?userId=${userId}`)
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/analytics/day-of-week?userId=${userId}`)
                     const result = await response.json()
                     if (result.success) {
                         setData(result.data)
                     }
                 }
             } catch (error) {
-                console.error("Failed to fetch time of day analytics", error)
+                console.error("Failed to fetch day of week analytics", error)
             } finally {
                 setLoading(false)
             }
@@ -58,8 +43,8 @@ export function TimeOfDayChart() {
         return (
             <Card className="col-span-full lg:col-span-1">
                 <CardHeader>
-                    <CardTitle>Time of Day Analysis</CardTitle>
-                    <CardDescription>시간대별 평균 참여도</CardDescription>
+                    <CardTitle>Day of Week Analysis</CardTitle>
+                    <CardDescription>요일별 평균 참여도</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[300px] flex items-center justify-center">
                     <p className="text-muted-foreground">Loading...</p>
@@ -71,8 +56,8 @@ export function TimeOfDayChart() {
     return (
         <Card className="col-span-full lg:col-span-1">
             <CardHeader>
-                <CardTitle>Time of Day Analysis</CardTitle>
-                <CardDescription>시간대별 평균 참여도 지표</CardDescription>
+                <CardTitle>Day of Week Analysis</CardTitle>
+                <CardDescription>요일별 평균 참여도 지표</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="h-[300px] w-full">
@@ -80,8 +65,7 @@ export function TimeOfDayChart() {
                         <ComposedChart data={data}>
                             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                             <XAxis
-                                dataKey="hour"
-                                tickFormatter={(hour) => `${hour}:00`}
+                                dataKey="day"
                                 className="text-xs text-muted-foreground"
                             />
                             <YAxis
@@ -98,10 +82,10 @@ export function TimeOfDayChart() {
                             <Tooltip
                                 content={({ active, payload, label }) => {
                                     if (active && payload && payload.length) {
-                                        const point = payload[0].payload as TimeOfDayData;
+                                        const point = payload[0].payload as DayOfWeekData;
                                         return (
                                             <div className="bg-card border border-border p-3 rounded-lg shadow-lg">
-                                                <p className="font-medium mb-2">{label}:00 - {Number(label) + 1}:00</p>
+                                                <p className="font-medium mb-2">{label}</p>
                                                 <div className="space-y-1 text-xs">
                                                     <div className="flex items-center gap-2">
                                                         <div className="w-2 h-2 rounded-full bg-primary" />
