@@ -50,6 +50,7 @@ export interface AnalyticsData {
         permalink: string;
         timestamp: string;
         tags: string[];
+        category?: string;
         metrics: {
             views: number;
             likes: number;

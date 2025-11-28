@@ -164,6 +164,7 @@ export class AnalyticsService {
             permalink: p.permalink,
             timestamp: p.timestamp.toISOString(),
             tags: p.analytics?.tags || [],
+            category: p.analytics?.category || null,
             metrics: {
                 views: p.insights[0]?.views || 0,
                 likes: p.insights[0]?.likes || 0,
