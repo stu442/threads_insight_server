@@ -146,7 +146,7 @@ export default function LandingPage() {
               </div>
               <h2 className="text-3xl font-bold tracking-tight">스마트 인사이트 요약</h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                CIAS가 AI로 일간/주간 인사이트를 요약해 제공합니다. 원시 데이터를 일일이 보지 않아도 바로 실행 가능한
+                CIAS가 AI로 주간 인사이트를 요약해 제공합니다. 데이터를 일일이 보지 않아도 바로 실행 가능한
                 제안을 받을 수 있습니다.
               </p>
               <ul className="mt-6 space-y-3 text-muted-foreground">
