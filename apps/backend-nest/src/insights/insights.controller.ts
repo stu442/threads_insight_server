@@ -184,4 +184,20 @@ export class InsightController {
             throw new InternalServerErrorException({ success: false, error: 'Failed to retrieve category metrics' });
         }
     }
+
+    @Get('analytics/time-of-day')
+    @ApiTags('Analytics')
+    @ApiOperation({ summary: 'Get time of day analytics' })
+    @ApiResponse({ status: 200, description: 'Time of day analytics retrieved successfully' })
+    async getTimeOfDayAnalytics(@Query('userId') userId: string) {
+        try {
+            const result = await this.analyticsService.getTimeOfDayAnalytics(userId);
+            return {
+                success: true,
+                data: result
+            };
+        } catch (error) {
+            throw new InternalServerErrorException({ success: false, error: 'Failed to retrieve time of day analytics' });
+        }
+    }
 }

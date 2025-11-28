@@ -347,4 +347,52 @@ export class AnalyticsService {
 
         return result;
     }
+
+    async getTimeOfDayAnalytics(userId: string) {
+        const posts = await this.prisma.post.findMany({
+            where: {
+                userId,
+                mediaType: { not: 'REPOST_FACADE' }
+            },
+            include: {
+                insights: {
+                    orderBy: { updatedAt: 'desc' },
+                    take: 1
+                }
+            }
+        });
+
+        // Initialize 24 hours
+        const hourlyStats: Record<number, { count: number; views: number; likes: number; replies: number; reposts: number }> = {};
+        for (let i = 0; i < 24; i++) {
+            hourlyStats[i] = { count: 0, views: 0, likes: 0, replies: 0, reposts: 0 };
+        }
+
+        for (const post of posts) {
+            const insight = post.insights[0];
+            if (!insight) continue;
+
+            const date = new Date(post.timestamp);
+            // KST (UTC+9) 기준으로 시간 추출
+            // getUTCHours()는 0-23 반환, 9시간 더하고 24로 나눈 나머지 계산
+            const hour = (date.getUTCHours() + 9) % 24;
+
+            hourlyStats[hour].count++;
+            hourlyStats[hour].views += insight.views || 0;
+            hourlyStats[hour].likes += insight.likes || 0;
+            hourlyStats[hour].replies += insight.replies || 0;
+            hourlyStats[hour].reposts += insight.reposts || 0;
+        }
+
+        const result = Object.entries(hourlyStats).map(([hour, stats]) => ({
+            hour: parseInt(hour),
+            count: stats.count,
+            avgViews: stats.count > 0 ? Math.round(stats.views / stats.count) : 0,
+            avgLikes: stats.count > 0 ? Math.round(stats.likes / stats.count) : 0,
+            avgReplies: stats.count > 0 ? Math.round(stats.replies / stats.count) : 0,
+            avgReposts: stats.count > 0 ? Math.round(stats.reposts / stats.count) : 0
+        }));
+
+        return result.sort((a, b) => a.hour - b.hour);
+    }
 }
