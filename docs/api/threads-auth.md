@@ -26,6 +26,42 @@ Threads 로그인 리다이렉트를 위한 URL 생성과, 돌아온 `code`를 S
   }
   ```
 
+## 1-1) Authorization Code → Short-lived Access Token (직접 교환)
+- **URL**: `/threads/auth/token`
+- **Method**: `POST`
+- **Body (JSON)**:
+  - `code` (필수): Threads가 redirect 시 전달하는 authorization code
+  - `state` (선택): authorize 시 생성한 state
+  - `redirect_uri` (선택): 기본값은 `THREADS_REDIRECT_URI`, 필요 시 override
+- **환경 변수 (백엔드)**:
+  - `THREADS_CLIENT_ID`
+  - `THREADS_CLIENT_SECRET`
+  - `THREADS_REDIRECT_URI` (override 없을 때 사용)
+- **설명**: 받은 code를 바로 Short-lived Access Token으로 교환합니다.
+- **요청 예시**:
+  ```bash
+  curl -X POST https://<backend>/threads/auth/token \
+    -H "Content-Type: application/json" \
+    -d '{
+      "code": "AUTH_CODE",
+      "state": "abc123",
+      "redirect_uri": "https://your.app/threads/auth/callback"
+    }'
+  ```
+- **성공 응답**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "access_token": "SL-ACCESS-TOKEN",
+      "user_id": "1234567890",
+      "token_type": "bearer",
+      "expires_in": 3600,
+      "state": "abc123"
+    }
+  }
+  ```
+
 ## 2) Authorization Code → Short-lived Access Token 교환
 - **URL**: `/threads/auth/callback`
 - **Method**: `GET`
