@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { OpenAIService } from './openai.service';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { OpenAIService } from '../../openai/service/openai.service';
 
 @Injectable()
 export class PostLabelingService {

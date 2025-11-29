@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { GetAnalyticsReqDto } from './dto';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { GetAnalyticsReqDto } from '../dto';
 
 @Injectable()
 export class AnalyticsService {
