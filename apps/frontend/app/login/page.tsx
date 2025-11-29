@@ -2,13 +2,15 @@ import { ThreadsLoginButton } from "@/components/threads-login-button"
 import { AlertTriangle } from "lucide-react"
 import Link from "next/link"
 
-export default function LoginErrorPage({
+export default async function LoginErrorPage({
   searchParams,
 }: {
-  searchParams?: { error?: string }
+  searchParams?: Promise<{ error?: string }>
 }) {
+  const resolvedSearchParams = (await searchParams) ?? {}
+
   const errorMessage =
-    searchParams?.error === "threads_auth_failed"
+    resolvedSearchParams.error === "threads_auth_failed"
       ? "Threads 인증에 실패했어요. 잠시 후 다시 시도해 주세요."
       : "로그인 처리 중 문제가 발생했어요."
 

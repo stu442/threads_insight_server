@@ -1,5 +1,3 @@
-import { cookies } from 'next/headers';
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -11,8 +9,13 @@ export async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): 
     // 서버 컴포넌트/Route Handler에서 호출될 때, 클라이언트의 쿠키를 백엔드로 전달
     if (typeof window === 'undefined') {
         try {
-            const cookieStore = cookies();
-            const cookieHeader = cookieStore.toString();
+            const { cookies } = await import('next/headers');
+            const cookieStore = await cookies();
+            const cookieHeader = cookieStore
+                .getAll()
+                .map(({ name, value }) => `${name}=${value}`)
+                .join('; ');
+
             if (cookieHeader) {
                 headers['Cookie'] = cookieHeader;
             }

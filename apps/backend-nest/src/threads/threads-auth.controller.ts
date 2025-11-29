@@ -143,6 +143,17 @@ export class ThreadsAuthController {
     @ApiOperation({ summary: '현재 인증된 Threads 사용자 정보 반환' })
     @ApiResponse({ status: 200, description: '유저 정보 반환' })
     getMe(@Req() req: Request) {
+        // 로컬 개발 편의를 위한 인증 우회 (THREADS_AUTH_DISABLE=true 시)
+        if (process.env.THREADS_AUTH_DISABLE === 'true') {
+            const devUserId = process.env.THREADS_DEV_USER_ID ?? 'dev-user';
+            return {
+                success: true,
+                data: {
+                    threadsUserId: devUserId,
+                },
+            };
+        }
+
         const token = this.threadsAuthService.extractAuthToken(req);
         const { threadsUserId } = this.threadsAuthService.verifyAuthToken(token);
 
