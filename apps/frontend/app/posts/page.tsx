@@ -4,14 +4,13 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { SearchIcon } from "lucide-react"
-import { getAnalytics, type AnalyticsData } from "@/lib/api"
+import { getAnalytics, getCurrentUser, type AnalyticsData } from "@/lib/api"
 import Link from "next/link"
+import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
-// TODO: Replace with actual user ID from auth context
-const USER_ID = "32547435728232967"
 const FALLBACK_TOPICS = ["Productivity", "Growth", "Strategy", "Community", "Tech"]
 const FALLBACK_TAGS = ["#productivity", "#threads", "#growth", "#marketing", "#dev"]
 const DEFAULT_PAGE_SIZE = 10
@@ -48,8 +47,16 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   let posts: Post[] = []
   let pagination: AnalyticsData["pagination"] | undefined
 
+  let userId: string
   try {
-    const analyticsData = await getAnalytics(USER_ID, {
+    const me = await getCurrentUser()
+    userId = me.threadsUserId
+  } catch (error) {
+    redirect("/login?error=threads_auth_failed")
+  }
+
+  try {
+    const analyticsData = await getAnalytics(userId, {
       page: currentPage,
       pageSize: currentPageSize,
     })

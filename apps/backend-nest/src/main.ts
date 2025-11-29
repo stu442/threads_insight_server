@@ -5,9 +5,9 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
-
-    // Enable CORS
-    app.enableCors();
+    // Enable CORS with credentials for cookie-based auth
+    const corsOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : true;
+    app.enableCors({ origin: corsOrigins, credentials: true });
 
     // Enable Validation
     app.useGlobalPipes(new ValidationPipe({ transform: true }));

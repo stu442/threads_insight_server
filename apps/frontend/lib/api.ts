@@ -1,12 +1,33 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options.headers as Record<string, string> | undefined),
+    };
+
+    // 서버 컴포넌트/Route Handler에서 호출될 때, 클라이언트의 쿠키를 백엔드로 전달
+    if (typeof window === 'undefined') {
+        try {
+            const { cookies } = await import('next/headers');
+            const cookieStore = await cookies();
+            const cookieHeader = cookieStore
+                .getAll()
+                .map(({ name, value }) => `${name}=${value}`)
+                .join('; ');
+
+            if (cookieHeader) {
+                headers['Cookie'] = cookieHeader;
+            }
+        } catch {
+            // next/headers 사용 불가한 환경에서는 그냥 스킵
+        }
+    }
+
     const response = await fetch(`${API_URL}${endpoint}`, {
         ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers,
-        },
+        credentials: 'include',
+        headers,
     });
 
     if (!response.ok) {
@@ -142,4 +163,12 @@ export interface CategoryMetrics {
 
 export async function getCategoryMetrics(userId: string): Promise<CategoryMetrics[]> {
     return fetchAPI<CategoryMetrics[]>(`/analytics/categories?userId=${userId}`);
+}
+
+export interface CurrentUser {
+    threadsUserId: string;
+}
+
+export async function getCurrentUser(): Promise<CurrentUser> {
+    return fetchAPI<CurrentUser>('/threads/auth/me');
 }

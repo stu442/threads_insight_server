@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Linkedin,
 } from "lucide-react"
+import { ThreadsLoginButton } from "@/components/threads-login-button"
 
 export default function LandingPage() {
   return (
@@ -23,9 +24,7 @@ export default function LandingPage() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <span className="text-lg font-semibold tracking-tight">CIAS</span>
-          <Button asChild size="sm">
-            <Link href="/dashboard">로그인</Link>
-          </Button>
+          <ThreadsLoginButton>로그인</ThreadsLoginButton>
         </div>
       </header>
 
@@ -50,11 +49,9 @@ export default function LandingPage() {
             내릴 수 있습니다.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button asChild size="lg" className="gap-2">
-              <Link href="/dashboard">
-                시작하기 <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <ThreadsLoginButton>
+              시작하기 <ArrowRight className="h-4 w-4" />
+            </ThreadsLoginButton>
             <Button asChild variant="outline" size="lg">
               <Link href="#features">자세히 보기</Link>
             </Button>
@@ -204,9 +201,6 @@ export default function LandingPage() {
                 <Badge variant="secondary">#short</Badge>
                 <Badge variant="outline">#tips</Badge>
                 <Badge variant="outline">#personal</Badge>
-              </div>
-              <div className="flex items-center justify-center py-4">
-                <ArrowRight className="h-5 w-5 text-muted-foreground" />
               </div>
               <div className="space-y-3">
                 <BarItem label="#productivity" value={85} />

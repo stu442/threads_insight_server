@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { ThreadsService } from '../threads/threads.service';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { ThreadsService } from '../../../threads/threads.service';
 
 @Injectable()
 export class InsightService {

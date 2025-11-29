@@ -31,19 +31,16 @@ export default function AnalyzePage() {
                     title="Avg Views"
                     value="1,735"
                     icon={<Eye className="h-4 w-4" />}
-                    subtext="+12.3% from last week"
                 />
                 <KPICard
                     title="Avg Likes"
                     value="137"
                     icon={<Heart className="h-4 w-4" />}
-                    subtext="+8.5% from last week"
                 />
                 <KPICard
                     title="Avg Engagement"
                     value="7.9%"
                     icon={<MessageCircle className="h-4 w-4" />}
-                    subtext="+2.1% from last week"
                 />
             </div>
 
