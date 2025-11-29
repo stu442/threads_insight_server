@@ -75,6 +75,8 @@ Threads 로그인 리다이렉트를 위한 URL 생성과, 돌아온 `code`를 S
   - `THREADS_REDIRECT_URI`
   - `THREADS_POST_AUTH_REDIRECT_URL` (선택, 성공 후 이동할 프론트 URL. 기본 `http://localhost:3000/dashboard`)
   - `THREADS_POST_AUTH_ERROR_REDIRECT_URL` (선택, 실패 시 이동할 URL. 기본 `http://localhost:3000/login?error=threads_auth_failed`)
+  - `THREADS_AUTH_JWT_SECRET` (필수, 콜백 성공 후 프론트 식별용 JWT 서명 키)
+  - `THREADS_AUTH_JWT_EXPIRES_IN` (선택, JWT 만료 초. 기본 3600)
 - **설명**: `code`를 받아 Threads Graph API에 토큰 교환을 요청해 Short-lived Access Token을 발급한 뒤 Long-lived 토큰으로 교환하고, `threadsUserId` 기준으로 DB(User 테이블)에 upsert 합니다. (state 검증은 추후 추가)
 - **요청 예시**:
   ```
@@ -97,8 +99,23 @@ Threads 로그인 리다이렉트를 위한 URL 생성과, 돌아온 `code`를 S
         "expires_in": 5184000
       },
       "state": "abc123"
-    }
   }
+}
+
+## 4) 현재 인증된 유저 조회 (JWT 기반)
+- **URL**: `/threads/auth/me`
+- **Method**: `GET`
+- **Headers**: `Authorization: Bearer <JWT>` 또는 `threads_auth` HttpOnly 쿠키
+- **설명**: 콜백에서 발급된 짧은 JWT를 검증해 현재 Threads 사용자를 반환합니다.
+- **성공 응답**:
+```json
+{
+  "success": true,
+  "data": {
+    "threadsUserId": "1234567890"
+  }
+}
+```
   ```
 - **에러 응답**:
   ```json

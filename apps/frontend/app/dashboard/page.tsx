@@ -3,24 +3,31 @@ import { KPICard } from "@/components/kpi-card"
 import { PostsTable, type Post } from "@/components/posts/posts-table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { getAnalytics, getCategoryMetrics } from "@/lib/api"
+import { getAnalytics, getCategoryMetrics, getCurrentUser } from "@/lib/api"
 import Link from "next/link"
+import { redirect } from "next/navigation"
 
 // 페이지가 매번 동적으로 렌더링 되도록 함
 export const dynamic = 'force-dynamic'
 
-// TODO: Replace with actual user ID from auth context or configuration
-const USER_ID = "32547435728232967"
-
 export default async function DashboardPage() {
+  // 현재 로그인된 사용자 조회 (JWT 쿠키 기반). 실패하면 로그인 페이지로.
+  let userId: string
+  try {
+    const me = await getCurrentUser()
+    userId = me.threadsUserId
+  } catch (error) {
+    redirect("/login?error=threads_auth_failed")
+  }
+
   let analyticsData = null
   let categoryMetrics = null
   let posts: Post[] = []
 
   try {
     const [analytics, metrics] = await Promise.all([
-      getAnalytics(USER_ID),
-      getCategoryMetrics(USER_ID)
+      getAnalytics(userId),
+      getCategoryMetrics(userId)
     ])
     analyticsData = analytics
     categoryMetrics = metrics

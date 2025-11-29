@@ -1,8 +1,8 @@
-import { BadRequestException, Body, Controller, Get, Logger, Post, Query, Res } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Logger, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ThreadsAuthService, type LongLivedTokenResponse, type ShortLivedTokenResponse } from './threads-auth.service';
 import { randomBytes } from 'crypto';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Threads Auth')
@@ -78,6 +78,7 @@ export class ThreadsAuthController {
             shortLived: ShortLivedTokenResponse;
             longLived: LongLivedTokenResponse;
             state?: string;
+            authToken: string;
         };
         error?: string;
     }> {
@@ -100,8 +101,11 @@ export class ThreadsAuthController {
                 longToken.expires_in,
             );
 
+            const authToken = this.threadsAuthService.generateAuthToken(shortToken.user_id.toString());
+
             // 성공 시 프론트 대시보드로 이동
             if (res) {
+                this.threadsAuthService.setAuthCookie(res, authToken);
                 const dashboardRedirect =
                     this.config.get<string>('THREADS_POST_AUTH_REDIRECT_URL') ??
                     'http://localhost:3000/dashboard';
@@ -116,6 +120,7 @@ export class ThreadsAuthController {
                     shortLived: shortToken,
                     longLived: longToken,
                     state,
+                    authToken,
                 },
             };
         } catch (error) {
@@ -132,5 +137,24 @@ export class ThreadsAuthController {
                 error: 'Failed to handle Threads auth callback',
             };
         }
+    }
+
+    @Get('me')
+    @ApiOperation({ summary: '현재 인증된 Threads 사용자 정보 반환' })
+    @ApiResponse({ status: 200, description: '유저 정보 반환' })
+    getMe(@Req() req: Request) {
+        const token = this.threadsAuthService.extractAuthToken(req);
+        const { threadsUserId } = this.threadsAuthService.verifyAuthToken(token);
+
+        if (!threadsUserId) {
+            throw new UnauthorizedException('Invalid user');
+        }
+
+        return {
+            success: true,
+            data: {
+                threadsUserId,
+            },
+        };
     }
 }

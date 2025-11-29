@@ -9,6 +9,6 @@ import { PrismaModule } from '../prisma/prisma.module';
     imports: [PrismaModule],
     providers: [ThreadsService, ThreadsAuthService],
     controllers: [ThreadsController, ThreadsAuthController],
-    exports: [ThreadsService],
+    exports: [ThreadsService, ThreadsAuthService],
 })
 export class ThreadsModule { }
