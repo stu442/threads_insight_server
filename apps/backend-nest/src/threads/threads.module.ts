@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ThreadsService } from './threads.service';
 import { ThreadsController } from './threads.controller';
+import { ThreadsAuthService } from './threads-auth.service';
+import { ThreadsAuthController } from './threads-auth.controller';
 
 @Module({
-    providers: [ThreadsService],
-    controllers: [ThreadsController],
+    providers: [ThreadsService, ThreadsAuthService],
+    controllers: [ThreadsController, ThreadsAuthController],
     exports: [ThreadsService],
 })
 export class ThreadsModule { }

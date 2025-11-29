@@ -1,0 +1,64 @@
+# Threads OAuth (Short-lived Token 발급)
+
+Threads 로그인 리다이렉트를 위한 URL 생성과, 돌아온 `code`를 Short-lived Access Token으로 교환하는 엔드포인트입니다.
+
+## 1) Threads 로그인 URL 발급
+- **URL**: `/threads/auth/url`
+- **Method**: `GET`
+- **Headers**: `Content-Type: application/json`
+- **환경 변수 (백엔드)**:
+  - `THREADS_CLIENT_ID`
+  - `THREADS_REDIRECT_URI`
+  - `THREADS_SCOPES` (기본: `threads_basic,threads_manage_insights`)
+- **설명**: CSRF 방지용 `state`를 생성하고 Threads authorize URL을 조립해 반환합니다. (현재 state 저장/검증은 TODO)
+- **요청 예시**:
+  ```
+  GET /threads/auth/url
+  ```
+- **성공 응답**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "url": "https://threads.net/oauth/authorize?client_id=...&redirect_uri=...&scope=threads_basic,threads_manage_insights&response_type=code&state=abc123",
+      "state": "abc123"
+    }
+  }
+  ```
+
+## 2) Authorization Code → Short-lived Access Token 교환
+- **URL**: `/threads/auth/callback`
+- **Method**: `GET`
+- **Query**:
+  - `code` (필수): Threads가 redirect 시 전달하는 authorization code
+  - `state` (선택): authorize 시 생성한 state (추후 검증용)
+- **Headers**: `Content-Type: application/json`
+- **환경 변수 (백엔드)**:
+  - `THREADS_CLIENT_ID`
+  - `THREADS_CLIENT_SECRET`
+  - `THREADS_REDIRECT_URI`
+- **설명**: `code`를 받아 Threads Graph API에 토큰 교환을 요청해 Short-lived Access Token을 반환합니다. (Long-lived 교환 및 state 검증은 추후 추가)
+- **요청 예시**:
+  ```
+  GET /threads/auth/callback?code=AUTH_CODE&state=abc123
+  ```
+- **성공 응답**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "access_token": "SL-ACCESS-TOKEN",
+      "user_id": "1234567890",
+      "token_type": "bearer",
+      "expires_in": 3600,
+      "state": "abc123"
+    }
+  }
+  ```
+- **에러 응답**:
+  ```json
+  {
+    "success": false,
+    "error": "Failed to exchange code for short-lived token"
+  }
+  ```
