@@ -7,14 +7,15 @@ export class ThreadsAuthGuard implements CanActivate {
     constructor(
         private readonly threadsAuthService: ThreadsAuthService,
         private readonly reflector: Reflector,
-    ) {}
+    ) { }
 
     canActivate(context: ExecutionContext): boolean {
         const request = context.switchToHttp().getRequest();
         const path: string = request.path ?? '';
 
-        // 로컬/개발 우회용: THREADS_AUTH_DISABLE=true 이면 인증 건너뜀
+        // 로컬 우회용: THREADS_AUTH_DISABLE=true 이면 인증 건너뜀
         if (process.env.THREADS_AUTH_DISABLE === 'true') {
+            request.threadsUserId = process.env.THREADS_DEV_USER_ID ?? 'dev-user';
             return true;
         }
 

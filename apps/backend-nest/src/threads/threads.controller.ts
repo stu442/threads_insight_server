@@ -27,17 +27,21 @@ export class ThreadsController {
 
     private async getUserToken(threadsUserId?: string): Promise<{ token: string; userId: string }> {
         if (!threadsUserId) {
+            this.logger.warn('Missing threadsUserId on request (auth may be misconfigured)');
             throw new UnauthorizedException('Missing Threads user id');
         }
 
+        this.logger.debug(`Fetching token for threadsUserId=${threadsUserId}`);
         const user = await this.prisma.user.findUnique({
             where: { threadsUserId },
         });
 
         if (!user?.threadsLongLivedToken) {
+            this.logger.warn(`Threads token not found for userId=${threadsUserId} (user ${user ? 'found' : 'not found'})`);
             throw new UnauthorizedException('Threads token not found for user');
         }
 
+        this.logger.debug(`Threads token resolved for userId=${threadsUserId}`);
         return { token: user.threadsLongLivedToken, userId: threadsUserId };
     }
 

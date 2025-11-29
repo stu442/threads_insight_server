@@ -7,12 +7,14 @@ import {
     NotFoundException,
     UnauthorizedException,
     Req,
+    Post,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { InsightService } from '../service/insights.service';
-import { CollectInsightsResDto, GetInsightsReqDto, PostWithInsightsDto } from '../dto';
+import { CollectInsightsResDto, GetInsightsReqDto, PostWithInsightsDto, SyncInsightsResDto } from '../dto';
+import { InsightSyncService } from '../service/insights-sync.service';
 
 interface ThreadsRequest extends Request {
     threadsUserId?: string;
@@ -24,6 +26,7 @@ export class InsightController {
     constructor(
         private readonly insightService: InsightService,
         private readonly prisma: PrismaService,
+        private readonly insightSyncService: InsightSyncService,
     ) { }
 
     private async resolveUserToken(userId?: string) {
@@ -71,6 +74,26 @@ export class InsightController {
             return { success: true, message: `Collected insights for ${result.savedCount} posts` };
         } catch (error) {
             throw new InternalServerErrorException({ success: false, error: 'Failed to collect insights' });
+        }
+    }
+
+    @Post('sync')
+    @ApiOperation({ summary: 'Ensure user data is collected and analyzed before serving dashboard' })
+    @ApiResponse({ status: 200, description: 'Sync completed successfully' })
+    async syncUserData(@Req() req: ThreadsRequest): Promise<SyncInsightsResDto> {
+        try {
+            const { userId, token } = await this.resolveUserToken(req.threadsUserId);
+            const result = await this.insightSyncService.syncUserData(token, userId);
+            return {
+                success: true,
+                mode: result.mode,
+                collectedCount: result.collectedCount,
+                analyzedCount: result.analyzedCount,
+                skippedCount: result.skippedCount,
+                touchedPostIds: result.touchedPostIds,
+            };
+        } catch (error) {
+            throw new InternalServerErrorException({ success: false, error: 'Failed to sync user data' });
         }
     }
 

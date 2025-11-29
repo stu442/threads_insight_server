@@ -172,3 +172,15 @@ export interface CurrentUser {
 export async function getCurrentUser(): Promise<CurrentUser> {
     return fetchAPI<CurrentUser>('/threads/auth/me');
 }
+
+export interface SyncResult {
+    mode: 'full' | 'incremental';
+    collectedCount: number;
+    analyzedCount: number;
+    skippedCount: number;
+    touchedPostIds: string[];
+}
+
+export async function syncUserData(): Promise<SyncResult> {
+    return fetchAPI<SyncResult>('/sync', { method: 'POST' });
+}

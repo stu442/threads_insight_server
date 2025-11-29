@@ -8,6 +8,7 @@ Base URL: `http://localhost:3001` (개발) 또는 배포된 URL
 - [헬스 체크](./health-check.md)
 - [Threads 프로필 조회](./get-threads-profile.md)
 - [Threads OAuth (Short-lived Token)](./threads-auth.md)
+- [대시보드 동기화 & 분석](./dashboard-sync.md)
 
 ### 인사이트 수집
 - [인사이트 수집 (증분)](./collect-insights.md) - 최신 N개 게시물
