@@ -3,13 +3,17 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ThreadsAuthService, type LongLivedTokenResponse, type ShortLivedTokenResponse } from './threads-auth.service';
 import { randomBytes } from 'crypto';
 import type { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Threads Auth')
 @Controller('threads/auth')
 export class ThreadsAuthController {
     private readonly logger = new Logger(ThreadsAuthController.name);
 
-    constructor(private readonly threadsAuthService: ThreadsAuthService) { }
+    constructor(
+        private readonly threadsAuthService: ThreadsAuthService,
+        private readonly config: ConfigService,
+    ) { }
 
     @Get('url')
     @ApiOperation({ summary: 'Generate Threads authorize URL with state' })
@@ -98,7 +102,10 @@ export class ThreadsAuthController {
 
             // 성공 시 프론트 대시보드로 이동
             if (res) {
-                res.redirect('/dashboard');
+                const dashboardRedirect =
+                    this.config.get<string>('THREADS_POST_AUTH_REDIRECT_URL') ??
+                    'http://localhost:3000/dashboard';
+                res.redirect(dashboardRedirect);
                 return;
             }
 
@@ -114,7 +121,10 @@ export class ThreadsAuthController {
         } catch (error) {
             this.logger.error('Failed to handle Threads auth callback', error);
             if (res) {
-                res.redirect('/login?error=threads_auth_failed');
+                const loginRedirect =
+                    this.config.get<string>('THREADS_POST_AUTH_ERROR_REDIRECT_URL') ??
+                    'http://localhost:3000/login?error=threads_auth_failed';
+                res.redirect(loginRedirect);
                 return;
             }
             return {

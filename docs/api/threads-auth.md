@@ -73,6 +73,8 @@ Threads 로그인 리다이렉트를 위한 URL 생성과, 돌아온 `code`를 S
   - `THREADS_CLIENT_ID`
   - `THREADS_CLIENT_SECRET`
   - `THREADS_REDIRECT_URI`
+  - `THREADS_POST_AUTH_REDIRECT_URL` (선택, 성공 후 이동할 프론트 URL. 기본 `http://localhost:3000/dashboard`)
+  - `THREADS_POST_AUTH_ERROR_REDIRECT_URL` (선택, 실패 시 이동할 URL. 기본 `http://localhost:3000/login?error=threads_auth_failed`)
 - **설명**: `code`를 받아 Threads Graph API에 토큰 교환을 요청해 Short-lived Access Token을 발급한 뒤 Long-lived 토큰으로 교환하고, `threadsUserId` 기준으로 DB(User 테이블)에 upsert 합니다. (state 검증은 추후 추가)
 - **요청 예시**:
   ```
