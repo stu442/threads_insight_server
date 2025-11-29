@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
-import { getTagCorrelation, TagCorrelation } from "@/lib/api"
+import { getCurrentUser, getTagCorrelation, TagCorrelation } from "@/lib/api"
 import { Check, ChevronsUpDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -33,11 +33,9 @@ export function TagCorrelationChart() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const userId = process.env.NEXT_PUBLIC_USER_ID
-                if (userId) {
-                    const result = await getTagCorrelation(userId)
-                    setData(result)
-                }
+                const me = await getCurrentUser()
+                const result = await getTagCorrelation(me.threadsUserId)
+                setData(result)
             } catch (error) {
                 console.error("Failed to fetch tag correlation", error)
             } finally {

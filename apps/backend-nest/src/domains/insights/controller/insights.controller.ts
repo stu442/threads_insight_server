@@ -1,26 +1,54 @@
-import { Controller, Get, Query, BadRequestException, InternalServerErrorException, Param, NotFoundException } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Query,
+    InternalServerErrorException,
+    Param,
+    NotFoundException,
+    UnauthorizedException,
+    Req,
+} from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { InsightService } from '../service/insights.service';
 import { CollectInsightsResDto, GetInsightsReqDto, PostWithInsightsDto } from '../dto';
+
+interface ThreadsRequest extends Request {
+    threadsUserId?: string;
+}
 
 @ApiTags('Insights')
 @Controller()
 export class InsightController {
-    constructor(private readonly insightService: InsightService) { }
+    constructor(
+        private readonly insightService: InsightService,
+        private readonly prisma: PrismaService,
+    ) { }
+
+    private async resolveUserToken(userId?: string) {
+        if (!userId) {
+            throw new UnauthorizedException('Missing Threads user id');
+        }
+
+        const user = await this.prisma.user.findUnique({
+            where: { threadsUserId: userId },
+        });
+
+        if (!user?.threadsLongLivedToken) {
+            throw new UnauthorizedException('Threads token not found for user');
+        }
+
+        return { userId, token: user.threadsLongLivedToken };
+    }
 
     @Get('collect/full')
     @ApiOperation({ summary: 'Collect insights from all Threads posts (full sync)' })
     @ApiResponse({ status: 200, description: 'Successfully collected all insights' })
     @ApiResponse({ status: 400, description: 'Bad request' })
-    async collectAllInsights(): Promise<CollectInsightsResDto> {
+    async collectAllInsights(@Req() req: ThreadsRequest): Promise<CollectInsightsResDto> {
         try {
-            const token = process.env.THREADS_ACCESS_TOKEN;
-            const userId = process.env.THREADS_USER_ID;
-
-            if (!token || !userId) {
-                throw new BadRequestException('Missing required environment variables');
-            }
-
+            const { userId, token } = await this.resolveUserToken(req.threadsUserId);
             const result = await this.insightService.collectAllInsights(token, userId);
             return { success: true, message: `Collected insights for ${result.savedCount} posts (full sync)` };
         } catch (error) {
@@ -32,15 +60,13 @@ export class InsightController {
     @ApiOperation({ summary: 'Collect insights from recent Threads posts' })
     @ApiResponse({ status: 200, description: 'Successfully collected insights' })
     @ApiResponse({ status: 400, description: 'Bad request' })
-    async collectInsights(@Query('limit') limit: number = 100): Promise<CollectInsightsResDto> {
+    async collectInsights(
+        @Query('limit') limit: number = 100,
+        @Query('userId') userIdFromQuery?: string,
+        @Req() req?: ThreadsRequest,
+    ): Promise<CollectInsightsResDto> {
         try {
-            const token = process.env.THREADS_ACCESS_TOKEN;
-            const userId = process.env.THREADS_USER_ID;
-
-            if (!token || !userId) {
-                throw new BadRequestException('Missing required environment variables');
-            }
-
+            const { userId, token } = await this.resolveUserToken(userIdFromQuery ?? req?.threadsUserId);
             const result = await this.insightService.collectInsights(token, userId, Number(limit));
             return { success: true, message: `Collected insights for ${result.savedCount} posts` };
         } catch (error) {

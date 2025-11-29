@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ComposedChart, Line } from "recharts"
 import { useEffect, useState } from "react"
+import { getCurrentUser } from "@/lib/api"
 
 interface DayOfWeekData {
     dayIndex: number
@@ -21,13 +22,13 @@ export function DayOfWeekChart() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const userId = process.env.NEXT_PUBLIC_USER_ID
-                if (userId) {
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/analytics/day-of-week?userId=${userId}`)
-                    const result = await response.json()
-                    if (result.success) {
-                        setData(result.data)
-                    }
+                const me = await getCurrentUser()
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/analytics/day-of-week?userId=${me.threadsUserId}`, {
+                    credentials: "include"
+                })
+                const result = await response.json()
+                if (result.success) {
+                    setData(result.data)
                 }
             } catch (error) {
                 console.error("Failed to fetch day of week analytics", error)

@@ -1,7 +1,12 @@
-import { Controller, Get, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Controller, Get, InternalServerErrorException, Logger, UnauthorizedException, Req } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ConfigService } from '@nestjs/config';
 import { ThreadsService, ThreadsProfile } from './threads.service';
+import type { Request } from 'express';
+import { PrismaService } from '../prisma/prisma.service';
+
+interface ThreadsRequest extends Request {
+    threadsUserId?: string;
+}
 
 interface ThreadsProfileResponse {
     id: string;
@@ -17,26 +22,32 @@ export class ThreadsController {
 
     constructor(
         private readonly threadsService: ThreadsService,
-        private readonly configService: ConfigService,
+        private readonly prisma: PrismaService,
     ) { }
+
+    private async getUserToken(threadsUserId?: string): Promise<{ token: string; userId: string }> {
+        if (!threadsUserId) {
+            throw new UnauthorizedException('Missing Threads user id');
+        }
+
+        const user = await this.prisma.user.findUnique({
+            where: { threadsUserId },
+        });
+
+        if (!user?.threadsLongLivedToken) {
+            throw new UnauthorizedException('Threads token not found for user');
+        }
+
+        return { token: user.threadsLongLivedToken, userId: threadsUserId };
+    }
 
     @Get('profile')
     @ApiOperation({ summary: 'Get Threads profile using server-side credentials' })
     @ApiResponse({ status: 200, description: 'Profile fetched successfully' })
-    async getProfile(): Promise<{ success: boolean; data: ThreadsProfileResponse }> {
-        const accessToken = this.configService.get<string>('THREADS_ACCESS_TOKEN');
-        const userId = this.configService.get<string>('THREADS_USER_ID');
-
-        if (!accessToken || !userId) {
-            this.logger.error('THREADS_ACCESS_TOKEN or THREADS_USER_ID is not configured');
-            throw new InternalServerErrorException({
-                success: false,
-                error: 'Threads credentials are not configured',
-            });
-        }
-
+    async getProfile(@Req() req: ThreadsRequest): Promise<{ success: boolean; data: ThreadsProfileResponse }> {
         try {
-            const profile: ThreadsProfile = await this.threadsService.getProfile(accessToken, userId);
+            const { token, userId } = await this.getUserToken(req.threadsUserId);
+            const profile: ThreadsProfile = await this.threadsService.getProfile(token, userId);
             return {
                 success: true,
                 data: {

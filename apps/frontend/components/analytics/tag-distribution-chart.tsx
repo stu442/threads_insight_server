@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
-import { getTagCorrelation, TagCorrelation } from "@/lib/api"
+import { getCurrentUser, getTagCorrelation, TagCorrelation } from "@/lib/api"
 
 export function TagDistributionChart() {
     const [data, setData] = useState<TagCorrelation[]>([])
@@ -12,15 +12,13 @@ export function TagDistributionChart() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const userId = process.env.NEXT_PUBLIC_USER_ID
-                if (userId) {
-                    const result = await getTagCorrelation(userId)
-                    // Sort by count descending and take top 10
-                    const sortedData = result
-                        .sort((a, b) => b.count - a.count)
-                        .slice(0, 10)
-                    setData(sortedData)
-                }
+                const me = await getCurrentUser()
+                const result = await getTagCorrelation(me.threadsUserId)
+                // Sort by count descending and take top 10
+                const sortedData = result
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 10)
+                setData(sortedData)
             } catch (error) {
                 console.error("Failed to fetch tag distribution", error)
             } finally {
