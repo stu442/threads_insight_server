@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Logger, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ThreadsAuthService } from './threads-auth.service';
+import { ThreadsAuthService, type LongLivedTokenResponse, type ShortLivedTokenResponse } from './threads-auth.service';
 import { randomBytes } from 'crypto';
 
 @ApiTags('Threads Auth')
@@ -45,7 +45,10 @@ export class ThreadsAuthController {
     @Post('token/long')
     @ApiOperation({ summary: 'Exchange short-lived token for a long-lived token' })
     @ApiResponse({ status: 200, description: 'Long-lived token issued successfully' })
-    async exchangeLongToken(@Body('access_token') accessToken?: string) {
+    async exchangeLongToken(@Body('access_token') accessToken?: string): Promise<{
+        success: boolean;
+        data?: LongLivedTokenResponse;
+    }> {
         if (!accessToken) {
             throw new BadRequestException('access_token is required');
         }
@@ -66,17 +69,8 @@ export class ThreadsAuthController {
     ): Promise<{
         success: boolean;
         data?: {
-            shortLived: {
-                access_token: string;
-                user_id: string;
-                token_type?: string;
-                expires_in?: number;
-            };
-            longLived: {
-                access_token: string;
-                token_type?: string;
-                expires_in?: number;
-            };
+            shortLived: ShortLivedTokenResponse;
+            longLived: LongLivedTokenResponse;
             state?: string;
         };
         error?: string;

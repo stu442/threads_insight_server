@@ -3,14 +3,14 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 
-interface ShortLivedTokenResponse {
+export interface ShortLivedTokenResponse {
     access_token: string;
     user_id: string;
     token_type?: string;
     expires_in?: number;
 }
 
-interface LongLivedTokenResponse {
+export interface LongLivedTokenResponse {
     access_token: string;
     token_type?: string;
     expires_in?: number;
