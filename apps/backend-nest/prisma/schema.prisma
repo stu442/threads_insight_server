@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -11,12 +12,12 @@ datasource db {
 }
 
 model User {
-  id                     String   @id @default(cuid())
-  threadsUserId          String   @unique
-  threadsLongLivedToken  String
-  threadsTokenExpiresAt  DateTime?
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  id                    String    @id @default(cuid())
+  threadsUserId         String    @unique
+  threadsLongLivedToken String
+  threadsTokenExpiresAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }
 
 model Post {
