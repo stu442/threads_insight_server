@@ -1,7 +1,8 @@
-import { BadRequestException, Body, Controller, Get, Logger, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Logger, Post, Query, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ThreadsAuthService, type LongLivedTokenResponse, type ShortLivedTokenResponse } from './threads-auth.service';
 import { randomBytes } from 'crypto';
+import type { Response } from 'express';
 
 @ApiTags('Threads Auth')
 @Controller('threads/auth')
@@ -66,7 +67,8 @@ export class ThreadsAuthController {
     async handleCallback(
         @Query('code') code?: string,
         @Query('state') state?: string,
-    ): Promise<{
+        @Res() res?: Response,
+    ): Promise<void | {
         success: boolean;
         data?: {
             shortLived: ShortLivedTokenResponse;
@@ -94,6 +96,13 @@ export class ThreadsAuthController {
                 longToken.expires_in,
             );
 
+            // 성공 시 프론트 대시보드로 이동
+            if (res) {
+                res.redirect('/dashboard');
+                return;
+            }
+
+            // (폴백) JSON 응답
             return {
                 success: true,
                 data: {
@@ -104,6 +113,10 @@ export class ThreadsAuthController {
             };
         } catch (error) {
             this.logger.error('Failed to handle Threads auth callback', error);
+            if (res) {
+                res.redirect('/login?error=threads_auth_failed');
+                return;
+            }
             return {
                 success: false,
                 error: 'Failed to handle Threads auth callback',
