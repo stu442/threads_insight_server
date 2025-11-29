@@ -73,7 +73,7 @@ Threads 로그인 리다이렉트를 위한 URL 생성과, 돌아온 `code`를 S
   - `THREADS_CLIENT_ID`
   - `THREADS_CLIENT_SECRET`
   - `THREADS_REDIRECT_URI`
-- **설명**: `code`를 받아 Threads Graph API에 토큰 교환을 요청해 Short-lived Access Token을 반환합니다. (Long-lived 교환 및 state 검증은 추후 추가)
+- **설명**: `code`를 받아 Threads Graph API에 토큰 교환을 요청해 Short-lived Access Token을 발급한 뒤 Long-lived 토큰으로 교환하고, `threadsUserId` 기준으로 DB(User 테이블)에 upsert 합니다. (state 검증은 추후 추가)
 - **요청 예시**:
   ```
   GET /threads/auth/callback?code=AUTH_CODE&state=abc123
@@ -83,10 +83,17 @@ Threads 로그인 리다이렉트를 위한 URL 생성과, 돌아온 `code`를 S
   {
     "success": true,
     "data": {
-      "access_token": "SL-ACCESS-TOKEN",
-      "user_id": "1234567890",
-      "token_type": "bearer",
-      "expires_in": 3600,
+      "shortLived": {
+        "access_token": "SL-ACCESS-TOKEN",
+        "user_id": "1234567890",
+        "token_type": "bearer",
+        "expires_in": 3600
+      },
+      "longLived": {
+        "access_token": "LL-ACCESS-TOKEN",
+        "token_type": "bearer",
+        "expires_in": 5184000
+      },
       "state": "abc123"
     }
   }
@@ -96,5 +103,33 @@ Threads 로그인 리다이렉트를 위한 URL 생성과, 돌아온 `code`를 S
   {
     "success": false,
     "error": "Failed to exchange code for short-lived token"
+  }
+  ```
+
+## 3) Short-lived Access Token → Long-lived Access Token
+- **URL**: `/threads/auth/token/long`
+- **Method**: `POST`
+- **Body (JSON)**:
+  - `access_token` (필수): Short-lived Access Token
+- **환경 변수 (백엔드)**:
+  - `THREADS_CLIENT_SECRET`
+- **설명**: short-lived 토큰을 long-lived 토큰으로 교환합니다. Threads Graph API `GET https://graph.threads.net/access_token`에 `grant_type=th_exchange_token`으로 전달합니다.
+- **요청 예시**:
+  ```bash
+  curl -X POST https://<backend>/threads/auth/token/long \
+    -H "Content-Type: application/json" \
+    -d '{
+      "access_token": "SHORT_LIVED_TOKEN"
+    }'
+  ```
+- **성공 응답**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "access_token": "LL-ACCESS-TOKEN",
+      "token_type": "bearer",
+      "expires_in": 5184000
+    }
   }
   ```

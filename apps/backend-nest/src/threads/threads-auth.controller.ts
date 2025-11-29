@@ -1,8 +1,7 @@
-import { BadRequestException, Controller, Get, Logger, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Logger, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ThreadsAuthService } from './threads-auth.service';
 import { randomBytes } from 'crypto';
-import { Body, Post } from '@nestjs/common';
 
 @ApiTags('Threads Auth')
 @Controller('threads/auth')
@@ -43,6 +42,21 @@ export class ThreadsAuthController {
         };
     }
 
+    @Post('token/long')
+    @ApiOperation({ summary: 'Exchange short-lived token for a long-lived token' })
+    @ApiResponse({ status: 200, description: 'Long-lived token issued successfully' })
+    async exchangeLongToken(@Body('access_token') accessToken?: string) {
+        if (!accessToken) {
+            throw new BadRequestException('access_token is required');
+        }
+
+        const token = await this.threadsAuthService.exchangeShortToLongToken(accessToken);
+        return {
+            success: true,
+            data: token,
+        };
+    }
+
     @Get('callback')
     @ApiOperation({ summary: 'Exchange authorization code for a short-lived token' })
     @ApiResponse({ status: 200, description: 'Token issued successfully' })
@@ -52,10 +66,17 @@ export class ThreadsAuthController {
     ): Promise<{
         success: boolean;
         data?: {
-            access_token: string;
-            user_id: string;
-            token_type?: string;
-            expires_in?: number;
+            shortLived: {
+                access_token: string;
+                user_id: string;
+                token_type?: string;
+                expires_in?: number;
+            };
+            longLived: {
+                access_token: string;
+                token_type?: string;
+                expires_in?: number;
+            };
             state?: string;
         };
         error?: string;
@@ -70,19 +91,28 @@ export class ThreadsAuthController {
         }
 
         try {
-            const token = await this.threadsAuthService.exchangeCodeForShortToken(code);
+            const shortToken = await this.threadsAuthService.exchangeCodeForShortToken(code);
+            const longToken = await this.threadsAuthService.exchangeShortToLongToken(shortToken.access_token);
+
+            await this.threadsAuthService.upsertUserWithLongToken(
+                shortToken.user_id.toString(),
+                longToken.access_token,
+                longToken.expires_in,
+            );
+
             return {
                 success: true,
                 data: {
-                    ...token,
+                    shortLived: shortToken,
+                    longLived: longToken,
                     state,
                 },
             };
         } catch (error) {
-            this.logger.error('Failed to exchange code for short-lived token', error);
+            this.logger.error('Failed to handle Threads auth callback', error);
             return {
                 success: false,
-                error: 'Failed to exchange code for short-lived token',
+                error: 'Failed to handle Threads auth callback',
             };
         }
     }

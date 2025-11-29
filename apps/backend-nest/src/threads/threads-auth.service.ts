@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface ShortLivedTokenResponse {
     access_token: string;
@@ -9,13 +10,23 @@ interface ShortLivedTokenResponse {
     expires_in?: number;
 }
 
+interface LongLivedTokenResponse {
+    access_token: string;
+    token_type?: string;
+    expires_in?: number;
+}
+
 @Injectable()
 export class ThreadsAuthService {
     private readonly logger = new Logger(ThreadsAuthService.name);
     private readonly oauthBase = 'https://graph.threads.net/oauth';
+    private readonly graphBase = 'https://graph.threads.net';
     private readonly authorizeUrl = 'https://www.threads.net/oauth/authorize';
 
-    constructor(private readonly config: ConfigService) { }
+    constructor(
+        private readonly config: ConfigService,
+        private readonly prisma: PrismaService,
+    ) { }
 
     buildAuthorizeUrl(state: string) {
         const clientId = this.config.getOrThrow<string>('THREADS_CLIENT_ID');
@@ -66,5 +77,58 @@ export class ThreadsAuthService {
             }
             throw error;
         }
+    }
+
+    /**
+     * Exchange short-lived token for a long-lived token.
+     */
+    async exchangeShortToLongToken(shortLivedToken: string): Promise<LongLivedTokenResponse> {
+        const clientSecret = this.config.getOrThrow<string>('THREADS_CLIENT_SECRET');
+
+        try {
+            const response = await axios.get<LongLivedTokenResponse>(`${this.graphBase}/access_token`, {
+                params: {
+                    grant_type: 'th_exchange_token',
+                    client_secret: clientSecret,
+                    access_token: shortLivedToken,
+                },
+            });
+
+            this.logger.log('Exchanged short-lived token for long-lived token');
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                const status = error.response?.status;
+                const data = error.response?.data;
+                this.logger.error(
+                    `Failed to exchange short-lived token for long-lived token (status=${status}) response=${JSON.stringify(data)}`,
+                );
+            } else {
+                this.logger.error('Failed to exchange short-lived token for long-lived token', error as Error);
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Upsert Threads user with long-lived token.
+     */
+    async upsertUserWithLongToken(threadsUserId: string, longLivedToken: string, expiresInSeconds?: number) {
+        const expiresAt = expiresInSeconds ? new Date(Date.now() + expiresInSeconds * 1000) : null;
+
+        await this.prisma.user.upsert({
+            where: { threadsUserId },
+            update: {
+                threadsLongLivedToken: longLivedToken,
+                threadsTokenExpiresAt: expiresAt ?? undefined,
+            },
+            create: {
+                threadsUserId,
+                threadsLongLivedToken: longLivedToken,
+                threadsTokenExpiresAt: expiresAt ?? undefined,
+            },
+        });
+
+        this.logger.log(`Stored long-lived token for Threads user ${threadsUserId}`);
     }
 }

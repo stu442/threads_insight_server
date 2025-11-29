@@ -10,6 +10,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                     String   @id @default(cuid())
+  threadsUserId          String   @unique
+  threadsLongLivedToken  String
+  threadsTokenExpiresAt  DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
 model Post {
   id        String         @id
   userId    String?
