@@ -8,6 +8,7 @@ import {
     UnauthorizedException,
     Req,
     Post,
+    Logger,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -23,6 +24,8 @@ interface ThreadsRequest extends Request {
 @ApiTags('Insights')
 @Controller()
 export class InsightController {
+    private readonly logger = new Logger(InsightController.name);
+
     constructor(
         private readonly insightService: InsightService,
         private readonly prisma: PrismaService,
@@ -70,7 +73,8 @@ export class InsightController {
     ): Promise<CollectInsightsResDto> {
         try {
             const { userId, token } = await this.resolveUserToken(userIdFromQuery ?? req?.threadsUserId);
-            const result = await this.insightService.collectInsights(token, userId, Number(limit));
+            const parsedLimit = Number(limit) || 100;
+            const result = await this.insightService.collectInsights(token, userId, { limit: parsedLimit });
             return { success: true, message: `Collected insights for ${result.savedCount} posts` };
         } catch (error) {
             throw new InternalServerErrorException({ success: false, error: 'Failed to collect insights' });
@@ -83,7 +87,24 @@ export class InsightController {
     async syncUserData(@Req() req: ThreadsRequest): Promise<SyncInsightsResDto> {
         try {
             const { userId, token } = await this.resolveUserToken(req.threadsUserId);
-            const result = await this.insightSyncService.syncUserData(token, userId);
+
+            // 대시보드 진입 시: UI는 바로 응답, 인크리멘탈(최근 100개)은 백그라운드로 돌린다
+            const result = await this.insightSyncService.syncUserData(token, userId, { allowIncremental: false });
+
+            let backgroundSyncStarted = false;
+            if (result.mode === 'skipped') {
+                backgroundSyncStarted = true;
+                void this.insightSyncService
+                    .syncUserData(token, userId, { allowIncremental: true })
+                    .then((bgResult) => {
+                        this.logger.log(
+                            `Background incremental sync completed for user ${userId} (collected=${bgResult.collectedCount}, analyzed=${bgResult.analyzedCount}, skipped=${bgResult.skippedCount})`,
+                        );
+                    })
+                    .catch((err) => {
+                        this.logger.error(`Background incremental sync failed for user ${userId}`, err);
+                    });
+            }
             return {
                 success: true,
                 mode: result.mode,
@@ -91,6 +112,7 @@ export class InsightController {
                 analyzedCount: result.analyzedCount,
                 skippedCount: result.skippedCount,
                 touchedPostIds: result.touchedPostIds,
+                backgroundSyncStarted,
             };
         } catch (error) {
             throw new InternalServerErrorException({ success: false, error: 'Failed to sync user data' });

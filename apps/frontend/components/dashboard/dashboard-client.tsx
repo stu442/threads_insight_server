@@ -24,6 +24,9 @@ interface DashboardClientProps {
   userId: string
 }
 
+const LAST_SYNC_KEY = "threadsLastSyncAt"
+const SYNC_COOLDOWN_MS = 10 * 60 * 1000 // 10 minutes
+
 export function DashboardClient({ userId }: DashboardClientProps) {
   const [status, setStatus] = useState<LoadState>("syncing")
   const [statusMessage, setStatusMessage] = useState("데이터 상태를 확인하고 있어요...")
@@ -38,13 +41,38 @@ export function DashboardClient({ userId }: DashboardClientProps) {
 
     async function bootstrap() {
       try {
-        setStatus("syncing")
-        setStatusMessage("데이터 동기화 중입니다. 잠시만 기다려주세요...")
-        const sync = await syncUserData()
-        if (cancelled) return
+        // 클라이언트 기준 10분 쿨다운 체크
+        const now = Date.now()
+        const lastSync = typeof window !== "undefined" ? Number(localStorage.getItem(LAST_SYNC_KEY) || 0) : 0
+        const shouldSync = now - lastSync > SYNC_COOLDOWN_MS
 
-        setSyncResult(sync)
-        setStatusMessage(sync.mode === "full" ? "모든 포스트를 정리하고 분석 중입니다." : "신규 포스트를 반영하고 있어요.")
+        if (shouldSync) {
+          setStatus("syncing")
+          setStatusMessage("데이터 동기화 중입니다. 잠시만 기다려주세요...")
+          const sync = await syncUserData()
+          if (cancelled) return
+
+          if (typeof window !== "undefined") {
+            localStorage.setItem(LAST_SYNC_KEY, String(Date.now()))
+          }
+
+          setSyncResult(sync)
+          setStatusMessage(
+            sync.mode === "full" ? "모든 포스트를 정리하고 분석 중입니다." : "신규 포스트를 반영하고 있어요.",
+          )
+        } else {
+          setStatus("loading")
+          setStatusMessage("최근 10분 내 동기화 완료. 데이터 불러오는 중입니다...")
+          setSyncResult({
+            mode: "skipped",
+            collectedCount: 0,
+            analyzedCount: 0,
+            skippedCount: 0,
+            touchedPostIds: [],
+            backgroundSyncStarted: false,
+          })
+        }
+
         setStatus("loading")
 
         const [analytics, metrics] = await Promise.all([

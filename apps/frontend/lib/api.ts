@@ -174,11 +174,12 @@ export async function getCurrentUser(): Promise<CurrentUser> {
 }
 
 export interface SyncResult {
-    mode: 'full' | 'incremental';
+    mode: 'full' | 'incremental' | 'skipped';
     collectedCount: number;
     analyzedCount: number;
     skippedCount: number;
     touchedPostIds: string[];
+    backgroundSyncStarted?: boolean;
 }
 
 export async function syncUserData(): Promise<SyncResult> {

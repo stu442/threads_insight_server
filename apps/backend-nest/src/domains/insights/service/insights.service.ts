@@ -47,11 +47,13 @@ export class InsightService {
     private async preparePosts(
         token: string,
         userId: string,
-        options: { mode: 'full' | 'recent'; limit?: number },
+        options: { mode: 'full' | 'recent'; limit?: number; recentDays?: number },
     ): Promise<PreparedPost[]> {
         const posts = options.mode === 'full'
             ? await this.threadsService.getAllMedia(token, userId)
-            : await this.threadsService.getMedia(token, userId, options.limit ?? 10);
+            : options.recentDays
+                ? await this.threadsService.getRecentMediaWithinDays(token, userId, options.recentDays, options.limit ?? 100)
+                : await this.threadsService.getMedia(token, userId, options.limit ?? 10);
 
         this.logger.log(`Fetched ${posts.length} posts from Threads API (${options.mode} sync)`);
 
@@ -162,11 +164,13 @@ export class InsightService {
     async collectInsights(
         token: string,
         userId: string,
-        limit: number = 10,
+        options?: { limit?: number; recentDays?: number },
     ): Promise<{ savedCount: number; postIds: string[]; createdPostIds: string[] }> {
+        const limit = options?.limit ?? 10;
+        const recentDays = options?.recentDays;
         this.logger.log(`Starting insight collection for user ${userId} with limit: ${limit}`);
 
-        const preparedPosts = await this.preparePosts(token, userId, { mode: 'recent', limit });
+        const preparedPosts = await this.preparePosts(token, userId, { mode: 'recent', limit, recentDays });
         const existingIds = new Set(
             (await this.prisma.post.findMany({
                 where: { userId },

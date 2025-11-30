@@ -3,7 +3,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { InsightService } from './insights.service';
 import { AnalyticsService } from '../../analytics/service/analytics.service';
 
-type SyncMode = 'full' | 'incremental';
+type SyncMode = 'full' | 'incremental' | 'skipped';
 
 @Injectable()
 export class InsightSyncService {
@@ -18,6 +18,7 @@ export class InsightSyncService {
     async syncUserData(
         token: string,
         userId: string,
+        options?: { allowIncremental?: boolean },
     ): Promise<{
         mode: SyncMode;
         collectedCount: number;
@@ -25,6 +26,8 @@ export class InsightSyncService {
         skippedCount: number;
         touchedPostIds: string[];
     }> {
+        const allowIncremental = options?.allowIncremental ?? true;
+        this.logger.debug(`Sync requested for userId=${userId}`);
         const existingPosts = await this.prisma.post.count({
             where: {
                 userId,
@@ -32,12 +35,27 @@ export class InsightSyncService {
             },
         });
 
-        const mode: SyncMode = existingPosts === 0 ? 'full' : 'incremental';
-        this.logger.log(`Running ${mode} sync for user ${userId}`);
+        const mode: SyncMode = existingPosts === 0 ? 'full' : allowIncremental ? 'incremental' : 'skipped';
+        this.logger.log(
+            `Running ${mode} sync for user ${userId} (existingPosts=${existingPosts}, allowIncremental=${allowIncremental})`,
+        );
+
+        if (mode === 'skipped') {
+            return {
+                mode,
+                collectedCount: 0,
+                analyzedCount: 0,
+                skippedCount: 0,
+                touchedPostIds: [],
+            };
+        }
 
         const collectResult = mode === 'full'
             ? await this.insightService.collectAllInsights(token, userId)
-            : await this.insightService.collectInsights(token, userId, 100);
+            : await this.insightService.collectInsights(token, userId, { limit: 100, recentDays: 7 });
+        this.logger.debug(
+            `Collect result for user ${userId}: saved=${collectResult.savedCount}, touched=${collectResult.postIds.length}, created=${collectResult.createdPostIds.length}`,
+        );
 
         try {
             const analyzeResult = await this.prisma.$transaction((tx) =>
