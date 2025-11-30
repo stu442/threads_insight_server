@@ -109,7 +109,12 @@ export class ThreadsAuthController {
                 const dashboardRedirect =
                     this.config.get<string>('THREADS_POST_AUTH_REDIRECT_URL') ??
                     'http://localhost:3000/dashboard';
-                res.redirect(dashboardRedirect);
+
+                // URL에 토큰을 쿼리 파라미터로 추가
+                const redirectUrl = new URL(dashboardRedirect);
+                redirectUrl.searchParams.set('token', authToken);
+
+                res.redirect(redirectUrl.toString());
                 return;
             }
 
