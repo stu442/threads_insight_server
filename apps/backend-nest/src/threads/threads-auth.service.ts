@@ -207,12 +207,18 @@ export class ThreadsAuthService {
     }
 
     setAuthCookie(res: Response, token: string) {
-        const secureCookies = (this.config.get<string>('NODE_ENV') ?? 'development') === 'production';
+        const configuredSameSite = (this.config.get<string>('THREADS_AUTH_COOKIE_SAMESITE') ?? '').toLowerCase();
+        const sameSite: boolean | 'lax' | 'strict' | 'none' =
+            configuredSameSite === 'none' ? 'none' : configuredSameSite === 'strict' ? 'strict' : 'lax';
+        const domain = this.config.get<string>('THREADS_AUTH_COOKIE_DOMAIN') || undefined;
+        const secureCookies = (this.config.get<string>('NODE_ENV') ?? 'development') === 'production' || sameSite === 'none';
+
         res.cookie('threads_auth', token, {
             httpOnly: true,
-            sameSite: 'lax',
+            sameSite,
             secure: secureCookies,
             path: '/',
+            domain,
             maxAge: this.jwtExpiresInSeconds * 1000,
         });
     }
