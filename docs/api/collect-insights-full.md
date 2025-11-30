@@ -8,7 +8,7 @@ Threads API로부터 **모든 게시물**의 인사이트를 수집하고 데이
 
 - **URL**: `/collect/full`
 - **Method**: `GET`
-- **인증**: 서버 측 환경 변수 사용 (`THREADS_ACCESS_TOKEN`, `THREADS_USER_ID`)
+- **인증**: 로그인한 Threads 사용자의 토큰 사용 (JWT/쿠키 기반 인증 필수)
 
 ## 요청 예시
 
@@ -37,7 +37,7 @@ curl "http://localhost:3001/collect/full"
 ```json
 {
   "success": false,
-  "error": "Missing required environment variables"
+  "error": "Missing Threads token for user"
 }
 ```
 

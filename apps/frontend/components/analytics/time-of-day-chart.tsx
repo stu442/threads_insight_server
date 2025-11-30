@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ComposedChart, Line } from "recharts"
 import { useEffect, useState } from "react"
+import { getCurrentUser } from "@/lib/api"
 
 interface TimeOfDayData {
     hour: number
@@ -20,29 +21,13 @@ export function TimeOfDayChart() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const userId = process.env.NEXT_PUBLIC_USER_ID
-                if (userId) {
-                    // Use the proxy endpoint which forwards to the backend
-                    // The backend controller is at /analytics/time-of-day
-                    // Assuming the proxy is set up to forward /api/proxy/* to the backend
-                    // Let's verify the API call structure. 
-                    // TagCorrelationChart uses `getTagCorrelation` from `@/lib/api`.
-                    // I should probably add a function to `@/lib/api` as well for consistency,
-                    // but for now I'll fetch directly or create the helper.
-                    // Let's check `@/lib/api` content first? 
-                    // No, let's just use fetch for now to be quick, or better, add to api.ts if possible.
-                    // But I don't want to context switch too much.
-                    // Let's assume /api/proxy/analytics/time-of-day is correct based on other patterns if they exist.
-                    // Wait, TagCorrelationChart imports `getTagCorrelation`.
-                    // I should probably check `apps/frontend/lib/api.ts` to see how it's implemented.
-                    // But to save steps, I'll just use fetch with the same pattern as I would expect.
-                    // If TagCorrelationChart uses a lib function, it likely wraps the fetch.
-
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/analytics/time-of-day?userId=${userId}`)
-                    const result = await response.json()
-                    if (result.success) {
-                        setData(result.data)
-                    }
+                const me = await getCurrentUser()
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/analytics/time-of-day?userId=${me.threadsUserId}`, {
+                    credentials: "include"
+                })
+                const result = await response.json()
+                if (result.success) {
+                    setData(result.data)
                 }
             } catch (error) {
                 console.error("Failed to fetch time of day analytics", error)

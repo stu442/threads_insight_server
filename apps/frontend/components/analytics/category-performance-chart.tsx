@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
-import { CategoryMetrics, getCategoryMetrics } from "@/lib/api"
+import { CategoryMetrics, getCategoryMetrics, getCurrentUser } from "@/lib/api"
 
 export function CategoryPerformanceChart() {
     const [data, setData] = useState<CategoryMetrics[]>([])
@@ -13,11 +13,9 @@ export function CategoryPerformanceChart() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const userId = process.env.NEXT_PUBLIC_USER_ID
-                if (userId) {
-                    const result = await getCategoryMetrics(userId)
-                    setData(result)
-                }
+                const me = await getCurrentUser()
+                const result = await getCategoryMetrics(me.threadsUserId)
+                setData(result)
             } catch (error) {
                 console.error("Failed to fetch category metrics", error)
             } finally {

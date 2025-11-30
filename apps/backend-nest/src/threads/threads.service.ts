@@ -119,6 +119,54 @@ export class ThreadsService {
         }
     }
 
+    async getRecentMediaWithinDays(
+        token: string,
+        userId: string,
+        days: number = 7,
+        pageSize: number = 100,
+    ): Promise<ThreadsMedia[]> {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+
+        const collected: ThreadsMedia[] = [];
+        let nextUrl: string | undefined = `${this.baseUrl}/${userId}/threads`;
+
+        while (nextUrl) {
+            const isFirstRequest = nextUrl === `${this.baseUrl}/${userId}/threads`;
+            const response = await axios.get<ThreadsPagingResponse>(nextUrl, {
+                params: isFirstRequest
+                    ? {
+                        fields: 'id,media_product_type,media_type,media_url,permalink,owner,username,text,timestamp,shortcode,is_quote_post',
+                        access_token: token,
+                        limit: pageSize,
+                    }
+                    : undefined,
+            });
+
+            if (!response.data?.data?.length) {
+                break;
+            }
+
+            const page = response.data.data;
+            for (const post of page) {
+                if (new Date(post.timestamp) >= cutoff) {
+                    collected.push(post);
+                }
+            }
+
+            const lastPost = page[page.length - 1];
+            const lastPostDate = new Date(lastPost.timestamp);
+            if (lastPostDate < cutoff) {
+                break; // remaining pages would be older than cutoff
+            }
+
+            nextUrl = response.data.paging?.next;
+        }
+
+        this.logger.log(`Fetched ${collected.length} posts within last ${days} days for user ${userId}`);
+        return collected;
+    }
+
     async getInsights(token: string, mediaId: string): Promise<ThreadsInsight[]> {
         try {
             this.logger.log(`Fetching insights for media ${mediaId}`);

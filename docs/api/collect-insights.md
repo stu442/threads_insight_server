@@ -8,7 +8,7 @@ Threads API로부터 최신 게시물의 인사이트를 수집하고 데이터�
 
 - **URL**: `/collect`
 - **Method**: `GET`
-- **인증**: 서버 측 환경 변수 사용 (`THREADS_ACCESS_TOKEN`, `THREADS_USER_ID`)
+- **인증**: 로그인한 Threads 사용자의 토큰 사용 (JWT/쿠키 기반 인증 필수)
 
 ## 요청 파라미터
 
@@ -17,6 +17,7 @@ Threads API로부터 최신 게시물의 인사이트를 수집하고 데이터�
 | 파라미터 | 타입 | 필수 | 기본값 | 설명 |
 |---------|------|------|--------|------|
 | `limit` | number | 선택 | 100 | 가져올 최신 게시물 수 (최대 100) |
+| `userId` | string | 선택 | - | 특정 Threads 사용자 ID 지정 (없으면 인증된 사용자) |
 
 ## 요청 예시
 
@@ -56,7 +57,7 @@ curl "http://localhost:3001/collect?limit=50"
 ```json
 {
   "success": false,
-  "error": "Missing required environment variables"
+  "error": "Missing Threads token for user"
 }
 ```
 
@@ -94,4 +95,3 @@ curl "http://localhost:3001/collect?limit=5"
 - 이미 DB에 존재하는 게시물은 `upsert`로 업데이트됩니다
 - 게시물별로 인사이트가 없을 수 있습니다 (최근 생성된 게시물 등)
 - limit은 Threads API 요청 시 사용되며, 실제 저장되는 게시물 수는 인사이트 존재 여부에 따라 다를 수 있습니다
-

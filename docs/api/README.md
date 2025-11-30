@@ -8,6 +8,7 @@ Base URL: `http://localhost:3001` (개발) 또는 배포된 URL
 - [헬스 체크](./health-check.md)
 - [Threads 프로필 조회](./get-threads-profile.md)
 - [Threads OAuth (Short-lived Token)](./threads-auth.md)
+- [대시보드 동기화 & 분석](./dashboard-sync.md)
 
 ### 인사이트 수집
 - [인사이트 수집 (증분)](./collect-insights.md) - 최신 N개 게시물
@@ -22,8 +23,9 @@ Base URL: `http://localhost:3001` (개발) 또는 배포된 URL
 
 ## 환경 변수
 
-대부분의 엔드포인트는 서버 측 환경 변수를 사용합니다:
+주요 설정:
 
-- `THREADS_ACCESS_TOKEN`: Threads API 액세스 토큰
-- `THREADS_USER_ID`: Threads 사용자 ID
+- `DATABASE_URL`: PostgreSQL 데이터베이스 연결 URL
+- Threads OAuth/JWT 관련: `THREADS_CLIENT_ID`, `THREADS_CLIENT_SECRET`, `THREADS_REDIRECT_URI`, `THREADS_AUTH_JWT_SECRET`, `THREADS_AUTH_JWT_EXPIRES_IN`, `THREADS_SCOPES`
+- 개발 편의: `THREADS_AUTH_DISABLE=true` (가드 우회), `THREADS_DEV_USER_ID` (우회 시 더미 사용자 ID)
 - `DATABASE_URL`: PostgreSQL 데이터베이스 연결 URL

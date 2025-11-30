@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { GetAnalyticsReqDto } from '../dto';
+import type { Prisma } from '@prisma/client';
+
+type PrismaClientLike = PrismaService | Prisma.TransactionClient;
 
 @Injectable()
 export class AnalyticsService {
@@ -32,11 +35,15 @@ export class AnalyticsService {
         return tags;
     }
 
-    async analyzePosts(userId: string, postIds?: string[]): Promise<{ analyzedCount: number; skippedCount: number }> {
+    async analyzePosts(
+        userId: string,
+        postIds?: string[],
+        prismaClient: PrismaClientLike = this.prisma,
+    ): Promise<{ analyzedCount: number; skippedCount: number }> {
         this.logger.log(`Starting analytics calculation for user ${userId}`);
 
         // Fetch posts with latest insights
-        const posts = await this.prisma.post.findMany({
+        const posts = await prismaClient.post.findMany({
             where: {
                 userId,
                 id: postIds ? { in: postIds } : undefined,
@@ -79,7 +86,7 @@ export class AnalyticsService {
             let category = null;
 
             // Preserve any existing GPT-driven analytics (category/tags) and merge with length tags
-            const existingAnalytics = await this.prisma.postAnalytics.findUnique({
+            const existingAnalytics = await prismaClient.postAnalytics.findUnique({
                 where: { postId: post.id }
             });
 
@@ -91,7 +98,7 @@ export class AnalyticsService {
             }
 
             // Save analytics to database
-            await this.prisma.postAnalytics.upsert({
+            await prismaClient.postAnalytics.upsert({
                 where: { postId: post.id },
                 update: {
                     engagementRate,
