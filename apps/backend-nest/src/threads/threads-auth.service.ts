@@ -70,6 +70,7 @@ export class ThreadsAuthService {
                 },
             });
 
+            this.logger.log(`Received short-lived token response: ${JSON.stringify(response.data)}`);
             this.logger.log(`Received short-lived token for user ${response.data.user_id}`);
             return response.data;
         } catch (error) {

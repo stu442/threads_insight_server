@@ -192,6 +192,7 @@ export class ThreadsService {
     async getProfile(token: string, userId: string): Promise<ThreadsProfile> {
         try {
             this.logger.log(`Fetching profile for user ${userId}`);
+            this.logger.debug(`Using token: ${token.substring(0, 10)}...`);
             const url = `${this.baseUrl}/${userId}`;
             const response = await axios.get(url, {
                 params: {
