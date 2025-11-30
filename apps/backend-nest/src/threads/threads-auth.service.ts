@@ -60,7 +60,10 @@ export class ThreadsAuthService {
         const redirectUri = overrideRedirectUri ?? this.config.getOrThrow<string>('THREADS_REDIRECT_URI');
 
         try {
-            const response = await axios.post<ShortLivedTokenResponse>(`${this.oauthBase}/access_token`, null, {
+            this.logger.debug(
+                `Threads OAuth exchange (code→short): url=${this.oauthBase}/access_token client_id=${clientId} redirect_uri=${redirectUri} code=${code}`,
+            );
+            const response = await axios.post<string>(`${this.oauthBase}/access_token`, null, {
                 params: {
                     client_id: clientId,
                     client_secret: clientSecret,
@@ -68,11 +71,26 @@ export class ThreadsAuthService {
                     grant_type: 'authorization_code',
                     code,
                 },
+                responseType: 'text', // keep raw JSON to avoid precision loss on large numeric IDs
+                transformResponse: (data) => data, // prevent axios from parsing to number
             });
 
-            this.logger.log(`Received short-lived token response: ${JSON.stringify(response.data)}`);
-            this.logger.log(`Received short-lived token for user ${response.data.user_id}`);
-            return response.data;
+            const raw = response.data;
+            this.logger.debug(`Threads OAuth exchange (code→short) response raw: ${raw}`);
+            const userIdMatch = /"user_id"\s*:\s*"?(\d+)"?/i.exec(raw);
+            const parsed = JSON.parse(raw) as ShortLivedTokenResponse;
+            const userId = userIdMatch?.[1] ?? parsed.user_id?.toString();
+            if (!userId) {
+                throw new Error('user_id missing in token response');
+            }
+
+            const normalized: ShortLivedTokenResponse = {
+                ...parsed,
+                user_id: userId,
+            };
+
+            this.logger.log(`Received short-lived token for user ${userId}`);
+            return normalized;
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 const status = error.response?.status;
@@ -94,6 +112,9 @@ export class ThreadsAuthService {
         const clientSecret = this.config.getOrThrow<string>('THREADS_CLIENT_SECRET');
 
         try {
+            this.logger.debug(
+                `Threads OAuth exchange (short→long): url=${this.graphBase}/access_token grant_type=th_exchange_token`,
+            );
             const response = await axios.get<LongLivedTokenResponse>(`${this.graphBase}/access_token`, {
                 params: {
                     grant_type: 'th_exchange_token',
@@ -103,6 +124,7 @@ export class ThreadsAuthService {
             });
 
             this.logger.log('Exchanged short-lived token for long-lived token');
+            this.logger.debug(`Threads OAuth exchange (short→long) response: ${JSON.stringify(response.data)}`);
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {

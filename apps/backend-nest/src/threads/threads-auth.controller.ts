@@ -90,6 +90,7 @@ export class ThreadsAuthController {
         if (state) {
             this.logger.log(`Received state: ${state}`);
         }
+        this.logger.debug(`Received code: ${code}`);
 
         try {
             const shortToken = await this.threadsAuthService.exchangeCodeForShortToken(code);
