@@ -50,9 +50,11 @@ export class InsightService {
         userId: string,
         options: { mode: 'full' | 'recent'; limit?: number; recentDays?: number },
     ): Promise<PreparedPost[]> {
-        // Threads API에서 게시글 목록을 가져오고 각 게시글의 인사이트를 묶어 저장 준비
+        // full: 모든 게시글, recent: 최근 일정일 이내 게시글
+        // 스레드 게시물을 가져온다.
         const posts = options.mode === 'full'
             ? await this.threadsService.getAllMedia(token, userId)
+            // recentDays: 최근 일정일 이내 게시글, limit: 최대 게시글 수
             : options.recentDays
                 ? await this.threadsService.getRecentMediaWithinDays(token, userId, options.recentDays, options.limit ?? 100)
                 : await this.threadsService.getMedia(token, userId, options.limit ?? 10);
@@ -63,7 +65,9 @@ export class InsightService {
 
         for (const post of posts) {
             this.logger.log(`Preparing post ${post.id} for persistence`);
+            // 스레드 게시글의 스레드 API 에서 가져온다.
             const insightsData = await this.threadsService.getInsights(token, post.id);
+            // 인사이트 데이터에서 주요 지표를 추출한다.
             const metrics = this.extractMetrics(insightsData);
             prepared.push({ post, metrics });
         }
@@ -144,6 +148,7 @@ export class InsightService {
     ): Promise<{ savedCount: number; postIds: string[]; createdPostIds: string[] }> {
         this.logger.log(`Starting full insight collection for user ${userId}`);
 
+        // post 및 인사이트 데이터를 Threads API에서 준비
         const preparedPosts = await this.preparePosts(token, userId, { mode: 'full' });
         const existingIds = new Set(
             (await this.prisma.post.findMany({
@@ -153,6 +158,7 @@ export class InsightService {
         );
 
         const result = await this.prisma.$transaction(async (tx) =>
+            // post 및 인사이트 데이터를 DB에 저장
             this.persistPreparedPosts(preparedPosts, userId, tx, existingIds),
         );
 
@@ -174,6 +180,7 @@ export class InsightService {
         const recentDays = options?.recentDays;
         this.logger.log(`Starting insight collection for user ${userId} with limit: ${limit}`);
 
+        // post 및 인사이트 데이터를 준비
         const preparedPosts = await this.preparePosts(token, userId, { mode: 'recent', limit, recentDays });
         const existingIds = new Set(
             (await this.prisma.post.findMany({
