@@ -25,6 +25,7 @@ export class InsightService {
         private readonly threadsService: ThreadsService,
     ) { }
 
+    // Threads 인사이트 응답에서 조회·좋아요 등 주요 지표만 숫자로 추려 반환
     private extractMetrics(insightsData: any[] | null | undefined): PreparedPost['metrics'] {
         if (!insightsData || insightsData.length === 0) {
             return null;
@@ -49,6 +50,7 @@ export class InsightService {
         userId: string,
         options: { mode: 'full' | 'recent'; limit?: number; recentDays?: number },
     ): Promise<PreparedPost[]> {
+        // Threads API에서 게시글 목록을 가져오고 각 게시글의 인사이트를 묶어 저장 준비
         const posts = options.mode === 'full'
             ? await this.threadsService.getAllMedia(token, userId)
             : options.recentDays
@@ -75,6 +77,7 @@ export class InsightService {
         prismaClient: PrismaClientLike,
         existingPostIds?: Set<string>,
     ): Promise<{ savedCount: number; postIds: string[]; createdPostIds: string[] }> {
+        // 준비된 게시글+메트릭을 업서트로 DB에 반영하고 신규 게시글을 기록
         const touchedPostIds: string[] = [];
         const createdPostIds: string[] = [];
         let savedCount = 0;
@@ -166,6 +169,7 @@ export class InsightService {
         userId: string,
         options?: { limit?: number; recentDays?: number },
     ): Promise<{ savedCount: number; postIds: string[]; createdPostIds: string[] }> {
+        // 지정한 개수/기간으로 최신 게시글 인사이트를 수집
         const limit = options?.limit ?? 10;
         const recentDays = options?.recentDays;
         this.logger.log(`Starting insight collection for user ${userId} with limit: ${limit}`);
@@ -190,6 +194,7 @@ export class InsightService {
         };
     }
 
+    // 특정 사용자의 최신 게시글과 가장 최근 인사이트를 함께 조회
     async getInsights(userId: string, limit: number = 10) {
         return await this.prisma.post.findMany({
             where: {
@@ -209,6 +214,7 @@ export class InsightService {
         });
     }
 
+    // 게시글 단건과 최신 인사이트/추가 분석 정보를 조회
     async getPost(id: string) {
         return await this.prisma.post.findUnique({
             where: { id },
