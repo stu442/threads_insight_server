@@ -5,17 +5,16 @@ import {
     InternalServerErrorException,
     Param,
     NotFoundException,
-    UnauthorizedException,
     Req,
     Post,
     Logger,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { PrismaService } from '../../../prisma/prisma.service';
 import { InsightService } from '../service/insights.service';
 import { CollectInsightsResDto, GetInsightsReqDto, PostWithInsightsDto, SyncInsightsResDto } from '../dto';
 import { InsightSyncService } from '../service/insights-sync.service';
+import { ThreadsUserService } from '../../../threads/threads-user.service';
 
 interface ThreadsRequest extends Request {
     threadsUserId?: string;
@@ -28,25 +27,9 @@ export class InsightController {
 
     constructor(
         private readonly insightService: InsightService,
-        private readonly prisma: PrismaService,
         private readonly insightSyncService: InsightSyncService,
+        private readonly threadsUserService: ThreadsUserService,
     ) { }
-
-    private async resolveUserToken(userId?: string) {
-        if (!userId) {
-            throw new UnauthorizedException('Missing Threads user id');
-        }
-
-        const user = await this.prisma.user.findUnique({
-            where: { threadsUserId: userId },
-        });
-
-        if (!user?.threadsLongLivedToken) {
-            throw new UnauthorizedException('Threads token not found for user');
-        }
-
-        return { userId, token: user.threadsLongLivedToken };
-    }
 
     @Get('collect/full')
     @ApiOperation({ summary: 'Collect insights from all Threads posts (full sync)' })
@@ -54,7 +37,7 @@ export class InsightController {
     @ApiResponse({ status: 400, description: 'Bad request' })
     async collectAllInsights(@Req() req: ThreadsRequest): Promise<CollectInsightsResDto> {
         try {
-            const { userId, token } = await this.resolveUserToken(req.threadsUserId);
+            const { userId, token } = await this.threadsUserService.resolveUserToken(req.threadsUserId);
             const result = await this.insightService.collectAllInsights(token, userId);
             return { success: true, message: `Collected insights for ${result.savedCount} posts (full sync)` };
         } catch (error) {
@@ -72,7 +55,7 @@ export class InsightController {
         @Req() req?: ThreadsRequest,
     ): Promise<CollectInsightsResDto> {
         try {
-            const { userId, token } = await this.resolveUserToken(userIdFromQuery ?? req?.threadsUserId);
+            const { userId, token } = await this.threadsUserService.resolveUserToken(userIdFromQuery ?? req?.threadsUserId);
             const parsedLimit = Number(limit) || 100;
             const result = await this.insightService.collectInsights(token, userId, { limit: parsedLimit });
             return { success: true, message: `Collected insights for ${result.savedCount} posts` };
@@ -86,7 +69,7 @@ export class InsightController {
     @ApiResponse({ status: 200, description: 'Sync completed successfully' })
     async syncUserData(@Req() req: ThreadsRequest): Promise<SyncInsightsResDto> {
         try {
-            const { userId, token } = await this.resolveUserToken(req.threadsUserId);
+            const { userId, token } = await this.threadsUserService.resolveUserToken(req.threadsUserId);
 
             // 대시보드 진입 시: UI는 바로 응답, 인크리멘탈(최근 100개)은 백그라운드로 돌린다
             const result = await this.insightSyncService.syncUserData(token, userId, { allowIncremental: false });

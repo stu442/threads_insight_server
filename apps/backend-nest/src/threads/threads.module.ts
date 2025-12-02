@@ -4,11 +4,12 @@ import { ThreadsController } from './threads.controller';
 import { ThreadsAuthService } from './threads-auth.service';
 import { ThreadsAuthController } from './threads-auth.controller';
 import { PrismaModule } from '../prisma/prisma.module';
+import { ThreadsUserService } from './threads-user.service';
 
 @Module({
     imports: [PrismaModule],
-    providers: [ThreadsService, ThreadsAuthService],
+    providers: [ThreadsService, ThreadsAuthService, ThreadsUserService],
     controllers: [ThreadsController, ThreadsAuthController],
-    exports: [ThreadsService, ThreadsAuthService],
+    exports: [ThreadsService, ThreadsAuthService, ThreadsUserService],
 })
 export class ThreadsModule { }
