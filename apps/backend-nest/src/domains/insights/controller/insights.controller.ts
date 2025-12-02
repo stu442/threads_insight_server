@@ -38,7 +38,7 @@ export class InsightController {
     async collectAllInsights(@Req() req: ThreadsRequest): Promise<CollectInsightsResDto> {
         try {
             const { userId, token } = await this.threadsUserService.resolveUserToken(req.threadsUserId);
-            const result = await this.insightService.collectAllInsights(token, userId);
+            const result = await this.insightService.collectInsights(token, userId, { mode: 'full' });
             return { success: true, message: `Collected insights for ${result.savedCount} posts (full sync)` };
         } catch (error) {
             throw new InternalServerErrorException({ success: false, error: 'Failed to collect all insights' });
@@ -57,7 +57,7 @@ export class InsightController {
         try {
             const { userId, token } = await this.threadsUserService.resolveUserToken(userIdFromQuery ?? req?.threadsUserId);
             const parsedLimit = Number(limit) || 100;
-            const result = await this.insightService.collectInsights(token, userId, { limit: parsedLimit });
+            const result = await this.insightService.collectInsights(token, userId, { mode: 'recent', limit: parsedLimit });
             return { success: true, message: `Collected insights for ${result.savedCount} posts` };
         } catch (error) {
             throw new InternalServerErrorException({ success: false, error: 'Failed to collect insights' });

@@ -51,8 +51,8 @@ export class InsightSyncService {
         }
 
         const collectResult = mode === 'full'
-            ? await this.insightService.collectAllInsights(token, userId)
-            : await this.insightService.collectInsights(token, userId, { limit: 100, recentDays: 7 });
+            ? await this.insightService.collectInsights(token, userId, { mode: 'full' })
+            : await this.insightService.collectInsights(token, userId, { mode: 'recent', limit: 100, recentDays: 7 });
         this.logger.debug(
             `Collect result for user ${userId}: saved=${collectResult.savedCount}, touched=${collectResult.postIds.length}, created=${collectResult.createdPostIds.length}`,
         );

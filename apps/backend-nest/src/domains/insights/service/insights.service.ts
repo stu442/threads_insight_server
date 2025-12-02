@@ -142,46 +142,23 @@ export class InsightService {
         return { savedCount, postIds: touchedPostIds, createdPostIds };
     }
 
-    async collectAllInsights(
-        token: string,
-        userId: string,
-    ): Promise<{ savedCount: number; postIds: string[]; createdPostIds: string[] }> {
-        this.logger.log(`Starting full insight collection for user ${userId}`);
-
-        // post 및 인사이트 데이터를 Threads API에서 준비
-        const preparedPosts = await this.preparePosts(token, userId, { mode: 'full' });
-        const existingIds = new Set(
-            (await this.prisma.post.findMany({
-                where: { userId },
-                select: { id: true },
-            })).map((p) => p.id),
-        );
-
-        const result = await this.prisma.$transaction(async (tx) =>
-            // post 및 인사이트 데이터를 DB에 저장
-            this.persistPreparedPosts(preparedPosts, userId, tx, existingIds),
-        );
-
-        this.logger.log(`Successfully collected insights for ${result.savedCount} posts (full sync)`);
-        return {
-            savedCount: result.savedCount,
-            postIds: result.postIds,
-            createdPostIds: result.createdPostIds,
-        };
-    }
-
     async collectInsights(
         token: string,
         userId: string,
-        options?: { limit?: number; recentDays?: number },
+        options?: { mode?: 'full' | 'recent'; limit?: number; recentDays?: number },
     ): Promise<{ savedCount: number; postIds: string[]; createdPostIds: string[] }> {
-        // 지정한 개수/기간으로 최신 게시글 인사이트를 수집
+        const mode = options?.mode ?? 'recent';
         const limit = options?.limit ?? 10;
         const recentDays = options?.recentDays;
-        this.logger.log(`Starting insight collection for user ${userId} with limit: ${limit}`);
+
+        const logSuffix =
+            mode === 'full'
+                ? '(full sync)'
+                : `(recent sync; limit=${limit}${recentDays ? `, recentDays=${recentDays}` : ''})`;
+        this.logger.log(`Starting insight collection for user ${userId} ${logSuffix}`);
 
         // post 및 인사이트 데이터를 준비
-        const preparedPosts = await this.preparePosts(token, userId, { mode: 'recent', limit, recentDays });
+        const preparedPosts = await this.preparePosts(token, userId, { mode, limit, recentDays });
         const existingIds = new Set(
             (await this.prisma.post.findMany({
                 where: { userId },
@@ -193,7 +170,9 @@ export class InsightService {
             this.persistPreparedPosts(preparedPosts, userId, tx, existingIds),
         );
 
-        this.logger.log(`Successfully collected insights for ${result.savedCount} posts`);
+        this.logger.log(
+            `Successfully collected insights for ${result.savedCount} posts${mode === 'full' ? ' (full sync)' : ''}`,
+        );
         return {
             savedCount: result.savedCount,
             postIds: result.postIds,
