@@ -10,6 +10,8 @@
         "dev": "turbo run dev --parallel",
         "build": "turbo run build",
         "test": "turbo run test",
+        "test:backend": "npm -w apps/backend-nest test",
+        "test:backend:watch": "npm -w apps/backend-nest run test:watch",
         "lint": "turbo run lint"
     },
     "devDependencies": {
