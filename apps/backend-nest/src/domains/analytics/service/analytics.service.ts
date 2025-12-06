@@ -1,6 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { GetAnalyticsReqDto } from '../dto';
+import {
+    accumulateCategoryStats,
+    accumulateTagStats,
+    buildDateFilter,
+    bucketDayOfWeekStatsKST,
+    bucketHourlyStats,
+    calcEngagement,
+    calculateRecentStats,
+    formatPosts,
+    generateLengthTags,
+    getPaginationInfo,
+    mergeTags,
+    paginateData,
+    sortPosts
+} from './analytics.util';
 import type { Prisma } from '@prisma/client';
 
 type PrismaClientLike = PrismaService | Prisma.TransactionClient;
@@ -10,30 +25,6 @@ export class AnalyticsService {
     private readonly logger = new Logger(AnalyticsService.name);
 
     constructor(private readonly prisma: PrismaService) { }
-
-    /**
-     * Generate length-based tags for a post based on its caption length
-     * Returns tags like: len-100, len-200, len-300, len-400, len-500
-     */
-    private generateLengthTags(caption: string | null): string[] {
-        const tags: string[] = [];
-        const length = caption?.length || 0;
-
-        // Determine which length category this post falls into
-        if (length <= 100) {
-            tags.push('len-100');
-        } else if (length <= 200) {
-            tags.push('len-200');
-        } else if (length <= 300) {
-            tags.push('len-300');
-        } else if (length <= 400) {
-            tags.push('len-400');
-        } else {
-            tags.push('len-500');
-        }
-
-        return tags;
-    }
 
     async analyzePosts(
         userId: string,
@@ -70,18 +61,10 @@ export class AnalyticsService {
             }
 
             // Calculate engagement metrics
-            const totalEngagements =
-                (latestInsight.likes || 0) +
-                (latestInsight.replies || 0) +
-                (latestInsight.reposts || 0) +
-                (latestInsight.quotes || 0);
-
-            const engagementRate = (latestInsight.views || 0) > 0
-                ? (totalEngagements / (latestInsight.views || 1)) * 100
-                : 0;
+            const { totalEngagements, engagementRate } = calcEngagement(latestInsight);
 
             // Generate tags based on post length
-            const lengthTags = this.generateLengthTags(post.caption);
+            const lengthTags = generateLengthTags(post.caption);
             let tags = [...lengthTags];
             let category = null;
 
@@ -92,9 +75,7 @@ export class AnalyticsService {
 
             if (existingAnalytics) {
                 category = existingAnalytics.category;
-                const existingNonLengthTags = existingAnalytics.tags.filter(t => !t.startsWith('len-'));
-                const uniqueTags = new Set([...tags, ...existingNonLengthTags]);
-                tags = Array.from(uniqueTags);
+                tags = mergeTags(existingAnalytics.tags, lengthTags);
             }
 
             // Save analytics to database
@@ -126,19 +107,11 @@ export class AnalyticsService {
 
     async getUserAnalytics(userId: string, filters: GetAnalyticsReqDto) {
         const { startDate, endDate, sortBy = 'date', sortOrder = 'desc', page = 1, pageSize = 10 } = filters;
-        const offset = (page - 1) * pageSize;
 
         this.logger.log(`Fetching analytics for user ${userId}`);
 
         // Build date filter
-        const dateFilter: any = {};
-        if (startDate) {
-            dateFilter.gte = new Date(startDate);
-        }
-
-        if (endDate) {
-            dateFilter.lte = new Date(endDate);
-        }
+        const dateFilter = buildDateFilter(startDate, endDate);
 
         // Get total posts count (all time)
         const totalPosts = await this.prisma.post.count({
@@ -165,67 +138,17 @@ export class AnalyticsService {
         });
 
         // Process and format posts
-        let formattedPosts = posts.map(p => ({
-            id: p.id,
-            caption: p.caption || '',
-            permalink: p.permalink,
-            timestamp: p.timestamp.toISOString(),
-            tags: p.analytics?.tags || [],
-            category: p.analytics?.category || null,
-            metrics: {
-                views: p.insights[0]?.views || 0,
-                likes: p.insights[0]?.likes || 0,
-                replies: p.insights[0]?.replies || 0,
-                reposts: p.insights[0]?.reposts || 0,
-                quotes: p.insights[0]?.quotes || 0,
-                engagement: parseFloat((p.analytics?.engagementRate || 0).toFixed(2))
-            }
-        }));
+        let formattedPosts = formatPosts(posts);
 
         // Sort posts
-        const order = sortOrder === 'asc' ? 1 : -1;
-        formattedPosts.sort((a, b) => {
-            let valA, valB;
-            switch (sortBy) {
-                case 'views':
-                    valA = a.metrics.views;
-                    valB = b.metrics.views;
-                    break;
-                case 'likes':
-                    valA = a.metrics.likes;
-                    valB = b.metrics.likes;
-                    break;
-                case 'engagement':
-                    valA = a.metrics.engagement;
-                    valB = b.metrics.engagement;
-                    break;
-                case 'date':
-                default:
-                    valA = new Date(a.timestamp).getTime();
-                    valB = new Date(b.timestamp).getTime();
-                    break;
-            }
-            return (valA - valB) * order;
-        });
+        formattedPosts = sortPosts(formattedPosts, sortBy, sortOrder);
 
         // Calculate statistics for the last 7 days
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-        const last7DaysPosts = formattedPosts.filter(p => new Date(p.timestamp) >= sevenDaysAgo);
-
-        const totalLikes = last7DaysPosts.reduce((sum, p) => sum + p.metrics.likes, 0);
-        const totalEngagement = last7DaysPosts.reduce((sum, p) => sum + p.metrics.engagement, 0);
-        const avgEngagement = last7DaysPosts.length > 0
-            ? totalEngagement / last7DaysPosts.length
-            : 0;
+        const { totalLikes, averageEngagement } = calculateRecentStats(formattedPosts, 7);
 
         // Apply pagination after sorting
-        const pagedPosts = formattedPosts.slice(offset, offset + pageSize);
-
-        const totalPages = Math.ceil(formattedPosts.length / pageSize) || 1;
-        const hasNext = page < totalPages;
-        const hasPrev = page > 1;
+        const pagedPosts = paginateData(formattedPosts, page, pageSize);
+        const { totalPages, hasNext, hasPrev } = getPaginationInfo(formattedPosts.length, page, pageSize);
 
         this.logger.log(`Analytics retrieved for user ${userId}: ${formattedPosts.length} posts in period, returning page ${page} (${pagedPosts.length} items)`);
 
@@ -233,12 +156,11 @@ export class AnalyticsService {
             totalPosts, // Total posts all time
             periodStats: {
                 period: {
-                    from: dateFilter.gte ? dateFilter.gte.toISOString() : null,
-                    to: dateFilter.lte ? dateFilter.lte.toISOString() : null
+                    from: dateFilter.gte ? dateFilter.gte.toISOString() : null, to: dateFilter.lte ? dateFilter.lte.toISOString() : null
                 },
                 postCount: formattedPosts.length, // Count of posts in period (unlimited)
                 totalLikes,
-                averageEngagement: parseFloat(avgEngagement.toFixed(2))
+                averageEngagement: parseFloat(averageEngagement.toFixed(2))
             },
             pagination: {
                 page,
@@ -266,42 +188,12 @@ export class AnalyticsService {
             }
         });
 
-        const tagStats: Record<string, { count: number; views: number; likes: number; reposts: number; replies: number }> = {};
-
-        for (const post of posts) {
-            const tags = post.analytics?.tags || [];
-            const insight = post.insights[0];
-
-            if (!insight) continue;
-
-            for (const tag of tags) {
-                if (!tagStats[tag]) {
-                    tagStats[tag] = { count: 0, views: 0, likes: 0, reposts: 0, replies: 0 };
-                }
-
-                tagStats[tag].count++;
-                tagStats[tag].views += insight.views || 0;
-                tagStats[tag].likes += insight.likes || 0;
-                tagStats[tag].reposts += insight.reposts || 0;
-                tagStats[tag].replies += insight.replies || 0;
-            }
-        }
-
-        const result = Object.entries(tagStats).map(([tag, stats]) => ({
-            tag,
-            count: stats.count,
-            avgViews: stats.count > 0 ? Math.round(stats.views / stats.count) : 0,
-            avgLikes: stats.count > 0 ? Math.round(stats.likes / stats.count) : 0,
-            avgReposts: stats.count > 0 ? Math.round(stats.reposts / stats.count) : 0,
-            avgReplies: stats.count > 0 ? Math.round(stats.replies / stats.count) : 0,
-            totalViews: stats.views,
-            totalLikes: stats.likes,
-            totalReposts: stats.reposts,
-            totalReplies: stats.replies
-        }));
-
-        // Sort by tag name to have len-100, len-200 in order
-        result.sort((a, b) => a.tag.localeCompare(b.tag));
+        const result = accumulateTagStats(
+            posts.map(post => ({
+                tags: post.analytics?.tags || [],
+                insight: post.insights[0]
+            }))
+        );
 
         return result;
     }
@@ -321,38 +213,12 @@ export class AnalyticsService {
             }
         });
 
-        const categoryStats: Record<string, { count: number; views: number; likes: number; replies: number }> = {};
-
-        for (const post of posts) {
-            const insight = post.insights[0];
-            if (!insight) continue;
-
-            const category = post.analytics?.category || 'Uncategorized';
-
-            if (!categoryStats[category]) {
-                categoryStats[category] = { count: 0, views: 0, likes: 0, replies: 0 };
-            }
-
-            categoryStats[category].count++;
-            categoryStats[category].views += insight.views || 0;
-            categoryStats[category].likes += insight.likes || 0;
-            categoryStats[category].replies += insight.replies || 0;
-        }
-
-        const result = Object.entries(categoryStats).map(([category, stats]) => ({
-            category,
-            count: stats.count,
-            avgViews: stats.count > 0 ? Math.round(stats.views / stats.count) : 0,
-            avgLikes: stats.count > 0 ? Math.round(stats.likes / stats.count) : 0,
-            avgReplies: stats.count > 0 ? Math.round(stats.replies / stats.count) : 0,
-            totalViews: stats.views,
-            totalLikes: stats.likes,
-            totalReplies: stats.replies
-        }));
-
-        result.sort((a, b) => b.totalViews - a.totalViews || a.category.localeCompare(b.category));
-
-        return result;
+        return accumulateCategoryStats(
+            posts.map(post => ({
+                category: post.analytics?.category || null,
+                insight: post.insights[0]
+            }))
+        );
     }
 
     async getTimeOfDayAnalytics(userId: string) {
@@ -369,38 +235,12 @@ export class AnalyticsService {
             }
         });
 
-        // Initialize 24 hours
-        const hourlyStats: Record<number, { count: number; views: number; likes: number; replies: number; reposts: number }> = {};
-        for (let i = 0; i < 24; i++) {
-            hourlyStats[i] = { count: 0, views: 0, likes: 0, replies: 0, reposts: 0 };
-        }
-
-        for (const post of posts) {
-            const insight = post.insights[0];
-            if (!insight) continue;
-
-            const date = new Date(post.timestamp);
-            // KST (UTC+9) 기준으로 시간 추출
-            // getUTCHours()는 0-23 반환, 9시간 더하고 24로 나눈 나머지 계산
-            const hour = (date.getUTCHours() + 9) % 24;
-
-            hourlyStats[hour].count++;
-            hourlyStats[hour].views += insight.views || 0;
-            hourlyStats[hour].likes += insight.likes || 0;
-            hourlyStats[hour].replies += insight.replies || 0;
-            hourlyStats[hour].reposts += insight.reposts || 0;
-        }
-
-        const result = Object.entries(hourlyStats).map(([hour, stats]) => ({
-            hour: parseInt(hour),
-            count: stats.count,
-            avgViews: stats.count > 0 ? Math.round(stats.views / stats.count) : 0,
-            avgLikes: stats.count > 0 ? Math.round(stats.likes / stats.count) : 0,
-            avgReplies: stats.count > 0 ? Math.round(stats.replies / stats.count) : 0,
-            avgReposts: stats.count > 0 ? Math.round(stats.reposts / stats.count) : 0
-        }));
-
-        return result.sort((a, b) => a.hour - b.hour);
+        return bucketHourlyStats(
+            posts.map(post => ({
+                timestamp: post.timestamp,
+                insight: post.insights[0]
+            }))
+        );
     }
 
     async getDayOfWeekAnalytics(userId: string) {
@@ -417,43 +257,11 @@ export class AnalyticsService {
             }
         });
 
-        // Initialize 7 days (0=Sun, 1=Mon, ..., 6=Sat)
-        const dailyStats: Record<number, { count: number; views: number; likes: number; replies: number; reposts: number }> = {};
-        for (let i = 0; i < 7; i++) {
-            dailyStats[i] = { count: 0, views: 0, likes: 0, replies: 0, reposts: 0 };
-        }
-
-        for (const post of posts) {
-            const insight = post.insights[0];
-            if (!insight) continue;
-
-            const date = new Date(post.timestamp);
-            // KST (UTC+9) adjustment for day of week
-            // We need to shift the time by 9 hours before getting the day
-            const kstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
-            const day = kstDate.getUTCDay(); // 0 (Sunday) - 6 (Saturday)
-
-            dailyStats[day].count++;
-            dailyStats[day].views += insight.views || 0;
-            dailyStats[day].likes += insight.likes || 0;
-            dailyStats[day].replies += insight.replies || 0;
-            dailyStats[day].reposts += insight.reposts || 0;
-        }
-
-        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-        const result = Object.entries(dailyStats).map(([day, stats]) => ({
-            dayIndex: parseInt(day),
-            day: days[parseInt(day)],
-            count: stats.count,
-            avgViews: stats.count > 0 ? Math.round(stats.views / stats.count) : 0,
-            avgLikes: stats.count > 0 ? Math.round(stats.likes / stats.count) : 0,
-            avgReplies: stats.count > 0 ? Math.round(stats.replies / stats.count) : 0,
-            avgReposts: stats.count > 0 ? Math.round(stats.reposts / stats.count) : 0
-        }));
-
-        // Sort by day index (Sun -> Sat)
-        // Or maybe Mon -> Sun? Standard is usually Sun=0. Let's stick to 0-6.
-        return result.sort((a, b) => a.dayIndex - b.dayIndex);
+        return bucketDayOfWeekStatsKST(
+            posts.map(post => ({
+                timestamp: post.timestamp,
+                insight: post.insights[0]
+            }))
+        );
     }
 }
